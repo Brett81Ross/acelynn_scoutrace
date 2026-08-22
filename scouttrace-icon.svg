@@ -1,0 +1,39 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-labelledby="title desc">
+  <title id="title">Acelynn's ScoutTrace icon</title>
+  <desc id="desc">A metallic A inside a cyan teal shield with radar sweep and trace path.</desc>
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#06090b"/>
+      <stop offset="1" stop-color="#10171a"/>
+    </linearGradient>
+    <linearGradient id="cyan" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#67e8f9"/>
+      <stop offset="0.55" stop-color="#22d3ee"/>
+      <stop offset="1" stop-color="#14b8a6"/>
+    </linearGradient>
+    <linearGradient id="metal" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#f4f7f8"/>
+      <stop offset="0.35" stop-color="#aeb8bd"/>
+      <stop offset="0.68" stop-color="#ffffff"/>
+      <stop offset="1" stop-color="#6f7b82"/>
+    </linearGradient>
+    <radialGradient id="sweep" cx="50%" cy="50%" r="50%">
+      <stop offset="0" stop-color="#22d3ee" stop-opacity="0.35"/>
+      <stop offset="1" stop-color="#22d3ee" stop-opacity="0"/>
+    </radialGradient>
+    <filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="9" result="blur"/>
+      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+  </defs>
+  <rect width="512" height="512" rx="116" fill="url(#bg)"/>
+  <circle cx="256" cy="242" r="174" fill="none" stroke="#16323a" stroke-width="2"/>
+  <circle cx="256" cy="242" r="128" fill="none" stroke="#12343b" stroke-width="2" stroke-dasharray="8 12"/>
+  <path d="M256 66 L413 124 V239 C413 342 350 421 256 456 C162 421 99 342 99 239 V124 Z" fill="#071216" stroke="url(#cyan)" stroke-width="14" stroke-linejoin="round" filter="url(#glow)"/>
+  <path d="M256 107 L375 151 V238 C375 313 331 374 256 405 C181 374 137 313 137 238 V151 Z" fill="none" stroke="#2dd4bf" stroke-opacity="0.35" stroke-width="3"/>
+  <path d="M256 242 L363 154 A148 148 0 0 1 392 242 Z" fill="url(#sweep)" opacity="0.9"/>
+  <path d="M203 337 L247 164 H274 L321 337 H289 L278 292 H239 L228 337 Z M246 263 H271 L259 211 Z" fill="url(#metal)"/>
+  <path d="M155 302 C183 286 200 292 221 274 C241 258 250 228 275 220 C301 211 315 237 340 221 C359 209 368 190 382 173" fill="none" stroke="#67e8f9" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/>
+  <circle cx="155" cy="302" r="7" fill="#67e8f9"/>
+  <circle cx="382" cy="173" r="7" fill="#2dd4bf"/>
+</svg>
