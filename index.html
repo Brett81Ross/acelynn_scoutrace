@@ -9,6 +9,7 @@
     <meta name="apple-mobile-web-app-title" content="ScoutTrace">
     <meta name="application-name" content="Acelynn's ScoutTrace™">
     <title>Acelynn's ScoutTrace™</title>
+    <link rel="manifest" href="manifest.webmanifest">
     <link rel="icon" href="scouttrace-icon.svg" type="image/svg+xml">
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
@@ -33,8 +34,6 @@
             0% { box-shadow: 0 0 10px rgba(239, 68, 68, 0.2); }
             100% { box-shadow: 0 0 25px rgba(239, 68, 68, 0.6); }
         }
-
-        /* Cactus Byte + ScoutTrace launch screen */
         #splash-screen {
             position: fixed;
             inset: 0;
@@ -286,7 +285,6 @@
             const step = canvas.clientWidth / (dataPoints.length - 1);
             for (let i = 0; i < dataPoints.length; i++) {
                 const x = i * step;
-                // Normalize values dynamically across canvas height
                 const y = (canvas.clientHeight / 2) - (dataPoints[i] * 0.5);
                 if (i === 0) ctx.moveTo(x, y);
                 else ctx.lineTo(x, y);
@@ -298,29 +296,21 @@
         function handleMotion(event) {
             if (!isScanning) return;
 
-            // Combine composite vector changes in multi-axis gravity to find anomalies
             const x = event.accelerationIncludingGravity.x || 0;
             const y = event.accelerationIncludingGravity.y || 0;
             const z = event.accelerationIncludingGravity.z || 0;
-
-            // Calculate magnitude offset against standard background matrix constants
             let magnitude = Math.sqrt(x*x + y*y + z*z) * 4.2; 
-            
-            // Simulating ambient microtesla flux base variations
             magnitude += (Math.random() * 1.5);
 
             emfValue.innerText = magnitude.toFixed(2);
-
-            // Shift history array window
             dataPoints.push(magnitude);
             dataPoints.shift();
 
-            // Threshold Trigger Rules for Audio/Visual Hardware Bugs
             if (magnitude > 55) {
                 statusTag.innerText = "THREAT DETECTED";
                 statusTag.className = "px-3 py-1 rounded-full text-xs font-semibold bg-red-950/50 border border-red-500 text-red-400";
                 gaugeContainer.className = "w-64 h-64 rounded-full ios-blur flex flex-col justify-center items-center relative transition-all duration-300 pulse-red";
-                if (navigator.vibrate) navigator.vibrate(60); // Trigger tactile click alert on Android
+                if (navigator.vibrate) navigator.vibrate(60);
             } else {
                 statusTag.innerText = "SCANNING LIVE";
                 statusTag.className = "px-3 py-1 rounded-full text-xs font-semibold bg-cyan-950/50 border border-cyan-500 text-cyan-400";
@@ -330,7 +320,6 @@
 
         startBtn.addEventListener('click', async () => {
             if (isScanning) {
-                // Toggle off state
                 isScanning = false;
                 window.removeEventListener('devicemotion', handleMotion);
                 startBtn.innerText = "Initialize Sensor Array";
@@ -342,7 +331,6 @@
 
             setupCanvas();
             
-            // Check Android modern security container mechanics
             if (typeof DeviceMotionEvent !== 'undefined' && typeof DeviceMotionEvent.requestPermission === 'function') {
                 try {
                     const permissionState = await DeviceMotionEvent.requestPermission();
@@ -355,7 +343,6 @@
                     console.error(error);
                 }
             } else {
-                // Direct hook profile for standard Android modern browsers
                 executeCapture();
             }
         });
