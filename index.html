@@ -2,9 +2,14 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Ace's Little Eye</title>
-    <!-- Tailwind CSS for rapid structural styling -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="theme-color" content="#050708">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="ScoutTrace">
+    <meta name="application-name" content="Acelynn's ScoutTrace™">
+    <title>Acelynn's ScoutTrace™</title>
+    <link rel="icon" href="scouttrace-icon.svg" type="image/svg+xml">
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         body {
@@ -28,9 +33,177 @@
             0% { box-shadow: 0 0 10px rgba(239, 68, 68, 0.2); }
             100% { box-shadow: 0 0 25px rgba(239, 68, 68, 0.6); }
         }
+
+        /* Cactus Byte + ScoutTrace launch screen */
+        #splash-screen {
+            position: fixed;
+            inset: 0;
+            z-index: 9999;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 32px 24px;
+            background:
+                radial-gradient(circle at 50% 35%, rgba(34, 211, 238, 0.13), transparent 34%),
+                radial-gradient(circle at 50% 72%, rgba(20, 184, 166, 0.08), transparent 30%),
+                linear-gradient(180deg, #020405 0%, #050708 55%, #020304 100%);
+            overflow: hidden;
+            opacity: 1;
+            visibility: visible;
+            transition: opacity 0.55s ease, visibility 0.55s ease;
+        }
+        #splash-screen::before {
+            content: "";
+            position: absolute;
+            inset: -20%;
+            background-image:
+                linear-gradient(rgba(34, 211, 238, 0.035) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(34, 211, 238, 0.035) 1px, transparent 1px);
+            background-size: 38px 38px;
+            transform: perspective(520px) rotateX(68deg) translateY(28%);
+            transform-origin: center bottom;
+            mask-image: linear-gradient(to bottom, transparent 20%, black 70%, transparent 100%);
+            pointer-events: none;
+        }
+        #splash-screen.splash-hide {
+            opacity: 0;
+            visibility: hidden;
+            pointer-events: none;
+        }
+        .studio-mark {
+            position: relative;
+            z-index: 2;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+            margin-bottom: 34px;
+        }
+        .studio-name {
+            color: #f5f7f8;
+            font-size: clamp(2rem, 9vw, 3.35rem);
+            line-height: 1;
+            font-weight: 900;
+            letter-spacing: -0.06em;
+            text-shadow: 0 0 28px rgba(34, 211, 238, 0.14);
+        }
+        .studio-name .cactus {
+            display: inline-block;
+            margin: 0 0.04em;
+            filter: drop-shadow(0 0 9px rgba(45, 212, 191, 0.28));
+            transform-origin: 50% 85%;
+            animation: cactusPulse 1.7s ease-in-out infinite alternate;
+        }
+        .studio-sub {
+            margin-top: 9px;
+            color: #7d8a90;
+            font-size: 0.78rem;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 0.36em;
+            padding-left: 0.36em;
+        }
+        .app-lockup {
+            position: relative;
+            z-index: 2;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        .app-icon-shell {
+            position: relative;
+            width: 150px;
+            height: 150px;
+            display: grid;
+            place-items: center;
+            border-radius: 40px;
+            background: rgba(8, 15, 18, 0.72);
+            border: 1px solid rgba(103, 232, 249, 0.14);
+            box-shadow:
+                0 0 0 1px rgba(255,255,255,0.025) inset,
+                0 26px 70px rgba(0,0,0,0.58),
+                0 0 55px rgba(34, 211, 238, 0.12);
+            animation: iconFloat 2.1s ease-in-out infinite alternate;
+        }
+        .app-icon-shell::after {
+            content: "";
+            position: absolute;
+            inset: -17px;
+            border: 1px dashed rgba(34, 211, 238, 0.17);
+            border-radius: 50%;
+            animation: radarSpin 9s linear infinite;
+        }
+        .app-icon-shell img {
+            width: 126px;
+            height: 126px;
+            display: block;
+        }
+        .app-name {
+            margin-top: 30px;
+            color: #f7fafb;
+            font-size: clamp(1.45rem, 6.5vw, 2rem);
+            line-height: 1.1;
+            font-weight: 900;
+            letter-spacing: -0.035em;
+        }
+        .app-name span {
+            color: #67e8f9;
+        }
+        .app-tagline {
+            margin-top: 8px;
+            color: #64747a;
+            font-size: 0.7rem;
+            font-weight: 800;
+            letter-spacing: 0.25em;
+            text-transform: uppercase;
+        }
+        .splash-trace {
+            width: min(280px, 72vw);
+            height: 2px;
+            margin-top: 28px;
+            overflow: hidden;
+            border-radius: 999px;
+            background: rgba(103, 232, 249, 0.09);
+        }
+        .splash-trace::after {
+            content: "";
+            display: block;
+            width: 42%;
+            height: 100%;
+            border-radius: inherit;
+            background: linear-gradient(90deg, transparent, #67e8f9, #2dd4bf, transparent);
+            animation: traceScan 1.35s ease-in-out infinite;
+        }
+        @keyframes radarSpin { to { transform: rotate(360deg); } }
+        @keyframes iconFloat { from { transform: translateY(2px) scale(0.985); } to { transform: translateY(-5px) scale(1); } }
+        @keyframes cactusPulse { from { transform: scale(0.97); } to { transform: scale(1.04); } }
+        @keyframes traceScan { from { transform: translateX(-120%); } to { transform: translateX(340%); } }
+        @media (prefers-reduced-motion: reduce) {
+            .studio-name .cactus,
+            .app-icon-shell,
+            .app-icon-shell::after,
+            .splash-trace::after { animation: none !important; }
+        }
     </style>
 </head>
 <body class="text-gray-100 flex flex-col justify-between min-h-screen p-6 select-none overflow-hidden">
+
+    <div id="splash-screen" aria-label="Acelynn's ScoutTrace launching">
+        <div class="studio-mark">
+            <div class="studio-name">Cactus<span class="cactus">🌵</span>Byte</div>
+            <div class="studio-sub">Studios™</div>
+        </div>
+
+        <div class="app-lockup">
+            <div class="app-icon-shell">
+                <img src="scouttrace-icon.svg" alt="Acelynn's ScoutTrace logo">
+            </div>
+            <div class="app-name">Acelynn's <span>ScoutTrace™</span></div>
+            <div class="app-tagline">Signal Intelligence</div>
+            <div class="splash-trace" aria-hidden="true"></div>
+        </div>
+    </div>
 
     <!-- Top Status Bar Area -->
     <header class="w-full flex justify-between items-center pt-2">
@@ -76,6 +249,7 @@
 
     <!-- Core Script Execution -->
     <script>
+        const splashScreen = document.getElementById('splash-screen');
         const startBtn = document.getElementById('start-btn');
         const emfValue = document.getElementById('emf-value');
         const statusTag = document.getElementById('status-tag');
@@ -86,6 +260,15 @@
         let dataPoints = new Array(50).fill(0);
         let animationFrameId;
         let isScanning = false;
+
+        window.addEventListener('DOMContentLoaded', () => {
+            window.setTimeout(() => {
+                if (splashScreen) splashScreen.classList.add('splash-hide');
+            }, 1550);
+            window.setTimeout(() => {
+                if (splashScreen) splashScreen.remove();
+            }, 2200);
+        });
 
         // Scale canvas for crisp pixel rendering on mobile high-DPI displays
         function setupCanvas() {
