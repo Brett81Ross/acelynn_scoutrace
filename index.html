@@ -5,18 +5,32 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <meta name="theme-color" content="#050708">
     <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="ScoutTrace">
     <meta name="application-name" content="Acelynn's ScoutTrace™">
     <title>Acelynn's ScoutTrace™</title>
     <link rel="manifest" href="manifest.webmanifest">
     <link rel="icon" href="scouttrace-icon.svg" type="image/svg+xml">
+    <link rel="apple-touch-icon" href="scouttrace-icon.svg">
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
+        :root {
+            color-scheme: dark;
+        }
+        html {
+            min-height: 100%;
+            background: #000;
+        }
         body {
+            min-height: 100dvh;
             background-color: #000000;
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
             -webkit-tap-highlight-color: transparent;
+            padding-top: max(1rem, env(safe-area-inset-top));
+            padding-right: max(1rem, env(safe-area-inset-right));
+            padding-bottom: max(1rem, env(safe-area-inset-bottom));
+            padding-left: max(1rem, env(safe-area-inset-left));
         }
         .ios-blur {
             background: rgba(20, 20, 25, 0.7);
@@ -34,6 +48,57 @@
             0% { box-shadow: 0 0 10px rgba(239, 68, 68, 0.2); }
             100% { box-shadow: 0 0 25px rgba(239, 68, 68, 0.6); }
         }
+
+        #app-shell {
+            width: 100%;
+            min-height: calc(100dvh - max(2rem, env(safe-area-inset-top) + env(safe-area-inset-bottom)));
+            opacity: 0;
+            transform: scale(0.992);
+            transition: opacity 0.45s ease, transform 0.45s ease;
+        }
+        body.app-ready #app-shell {
+            opacity: 1;
+            transform: none;
+        }
+        .brand-icon {
+            width: 44px;
+            height: 44px;
+            flex: 0 0 auto;
+            border-radius: 13px;
+            background: rgba(8, 15, 18, 0.8);
+            border: 1px solid rgba(103, 232, 249, 0.14);
+            box-shadow: 0 0 22px rgba(34, 211, 238, 0.09);
+            padding: 5px;
+        }
+        .brand-icon img {
+            display: block;
+            width: 100%;
+            height: 100%;
+        }
+        .app-footer {
+            color: #626c70;
+            text-align: center;
+            font-size: 0.68rem;
+            line-height: 1.55;
+            letter-spacing: 0.01em;
+            padding: 2px 4px 0;
+        }
+        .version-pill {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            margin-top: 6px;
+            padding: 3px 8px;
+            border-radius: 999px;
+            border: 1px solid rgba(255,255,255,0.07);
+            background: rgba(255,255,255,0.025);
+            color: #79858a;
+            font-size: 0.62rem;
+            font-weight: 700;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+        }
+
         #splash-screen {
             position: fixed;
             inset: 0;
@@ -42,7 +107,7 @@
             flex-direction: column;
             align-items: center;
             justify-content: center;
-            padding: 32px 24px;
+            padding: max(32px, env(safe-area-inset-top)) 24px max(32px, env(safe-area-inset-bottom));
             background:
                 radial-gradient(circle at 50% 35%, rgba(34, 211, 238, 0.13), transparent 34%),
                 radial-gradient(circle at 50% 72%, rgba(20, 184, 166, 0.08), transparent 30%),
@@ -50,7 +115,7 @@
             overflow: hidden;
             opacity: 1;
             visibility: visible;
-            transition: opacity 0.55s ease, visibility 0.55s ease;
+            transition: opacity 0.5s ease, visibility 0.5s ease;
         }
         #splash-screen::before {
             content: "";
@@ -178,6 +243,18 @@
         @keyframes iconFloat { from { transform: translateY(2px) scale(0.985); } to { transform: translateY(-5px) scale(1); } }
         @keyframes cactusPulse { from { transform: scale(0.97); } to { transform: scale(1.04); } }
         @keyframes traceScan { from { transform: translateX(-120%); } to { transform: translateX(340%); } }
+
+        @media (max-width: 480px) {
+            .app-icon-shell {
+                width: 132px;
+                height: 132px;
+                border-radius: 35px;
+            }
+            .app-icon-shell img {
+                width: 110px;
+                height: 110px;
+            }
+        }
         @media (prefers-reduced-motion: reduce) {
             .studio-name .cactus,
             .app-icon-shell,
@@ -186,7 +263,7 @@
         }
     </style>
 </head>
-<body class="text-gray-100 flex flex-col justify-between min-h-screen p-6 select-none overflow-hidden">
+<body class="text-gray-100 select-none overflow-x-hidden overflow-y-auto">
 
     <div id="splash-screen" aria-label="Acelynn's ScoutTrace launching">
         <div class="studio-mark">
@@ -204,49 +281,51 @@
         </div>
     </div>
 
-    <!-- Top Status Bar Area -->
-    <header class="w-full flex justify-between items-center pt-2">
-        <div>
-            <h1 class="text-xs font-bold uppercase tracking-widest text-zinc-500">Signal Intelligence</h1>
-            <p class="text-2xl font-black text-white tracking-tight">Ace's Little Eye</p>
-        </div>
-        <div id="status-tag" class="px-3 py-1 rounded-full text-xs font-semibold bg-zinc-900 border border-zinc-800 text-zinc-400">
-            SYSTEM READY
-        </div>
-    </header>
+    <div id="app-shell" class="max-w-md mx-auto flex flex-col min-h-[calc(100dvh-2rem)]">
+        <header class="w-full flex justify-between items-center gap-3 pt-1">
+            <div class="flex items-center gap-3 min-w-0">
+                <div class="brand-icon" aria-hidden="true">
+                    <img src="scouttrace-icon.svg" alt="">
+                </div>
+                <div class="min-w-0">
+                    <h1 class="text-[0.66rem] font-bold uppercase tracking-[0.22em] text-zinc-500">Signal Intelligence</h1>
+                    <p class="text-xl sm:text-2xl font-black text-white tracking-tight leading-tight truncate">Acelynn's ScoutTrace™</p>
+                </div>
+            </div>
+            <div id="status-tag" class="shrink-0 px-3 py-1 rounded-full text-[0.68rem] font-semibold bg-zinc-900 border border-zinc-800 text-zinc-400">
+                SYSTEM READY
+            </div>
+        </header>
 
-    <!-- Main Visualizer Container -->
-    <main class="flex-1 flex flex-col justify-center items-center my-6 w-full">
-        <!-- iOS Style Circular Gauge -->
-        <div id="gauge-container" class="w-64 h-64 rounded-full ios-blur flex flex-col justify-center items-center relative transition-all duration-300 neon-glow-cyan">
-            <!-- Decorative Inner Radar Ring -->
-            <div class="absolute inset-4 rounded-full border border-dashed border-zinc-800/60 animate-[spin_20s_linear_infinite]"></div>
-            
-            <span class="text-xs font-medium tracking-widest text-cyan-400 uppercase mb-1 z-10">EMF Intensity</span>
-            <span id="emf-value" class="text-6xl font-light font-mono tracking-tighter text-white z-10">0.00</span>
-            <span class="text-xs font-bold text-zinc-500 mt-1 z-10">µT (Microtesla)</span>
-        </div>
+        <main class="flex-1 flex flex-col justify-center items-center py-7 sm:py-9 w-full">
+            <div id="gauge-container" class="w-64 h-64 rounded-full ios-blur flex flex-col justify-center items-center relative transition-all duration-300 neon-glow-cyan">
+                <div class="absolute inset-4 rounded-full border border-dashed border-zinc-800/60 animate-[spin_20s_linear_infinite]"></div>
+                <span class="text-xs font-medium tracking-widest text-cyan-400 uppercase mb-1 z-10">EMF Intensity</span>
+                <span id="emf-value" class="text-6xl font-light font-mono tracking-tighter text-white z-10">0.00</span>
+                <span class="text-xs font-bold text-zinc-500 mt-1 z-10">µT (Microtesla)</span>
+            </div>
 
-        <!-- Real-time Waveform Canvas -->
-        <div class="w-full max-w-sm mt-8 ios-blur rounded-2xl p-4 h-24 relative overflow-hidden">
-            <canvas id="waveform" class="w-full h-full opacity-80"></canvas>
-        </div>
-    </main>
+            <div class="w-full mt-7 ios-blur rounded-2xl p-4 h-24 relative overflow-hidden">
+                <canvas id="waveform" class="w-full h-full opacity-80"></canvas>
+            </div>
+        </main>
 
-    <!-- Bottom Interface Controls -->
-    <footer class="w-full max-w-sm mx-auto space-y-4 pb-4">
-        <!-- Calibration Info Banner -->
-        <div class="ios-blur rounded-xl p-3 text-center text-xs text-zinc-400">
-            <span class="text-cyan-400 font-semibold">Android Hardware Alert:</span> Sweep phone slowly near walls, outlets, or frames to detect anomalies.
-        </div>
+        <footer class="w-full space-y-3 pb-1">
+            <div class="ios-blur rounded-xl p-3 text-center text-xs text-zinc-400">
+                <span class="text-cyan-400 font-semibold">Sensor Guidance:</span> Sweep your phone slowly near walls, outlets, frames, or electronics to detect anomalies.
+            </div>
 
-        <!-- Native Access Request Trigger Button -->
-        <button id="start-btn" class="w-full py-4 rounded-2xl font-semibold tracking-wide text-black bg-gradient-to-r from-cyan-400 to-emerald-400 active:scale-[0.98] transition-transform duration-100 shadow-lg shadow-cyan-500/20">
-            Initialize Sensor Array
-        </button>
-    </footer>
+            <button id="start-btn" class="w-full py-4 rounded-2xl font-semibold tracking-wide text-black bg-gradient-to-r from-cyan-400 to-emerald-400 active:scale-[0.98] transition-transform duration-100 shadow-lg shadow-cyan-500/20">
+                Initialize Sensor Array
+            </button>
 
-    <!-- Core Script Execution -->
+            <div class="app-footer">
+                <div>Acelynn's ScoutTrace™ • Cactus🌵Byte Studios™ • All Rights Reserved</div>
+                <div class="version-pill">Version 1.0.0</div>
+            </div>
+        </footer>
+    </div>
+
     <script>
         const splashScreen = document.getElementById('splash-screen');
         const startBtn = document.getElementById('start-btn');
@@ -262,14 +341,14 @@
 
         window.addEventListener('DOMContentLoaded', () => {
             window.setTimeout(() => {
+                document.body.classList.add('app-ready');
                 if (splashScreen) splashScreen.classList.add('splash-hide');
-            }, 1550);
+            }, 1450);
             window.setTimeout(() => {
                 if (splashScreen) splashScreen.remove();
-            }, 2200);
+            }, 2050);
         });
 
-        // Scale canvas for crisp pixel rendering on mobile high-DPI displays
         function setupCanvas() {
             canvas.width = canvas.clientWidth * window.devicePixelRatio;
             canvas.height = canvas.clientHeight * window.devicePixelRatio;
@@ -308,12 +387,12 @@
 
             if (magnitude > 55) {
                 statusTag.innerText = "THREAT DETECTED";
-                statusTag.className = "px-3 py-1 rounded-full text-xs font-semibold bg-red-950/50 border border-red-500 text-red-400";
+                statusTag.className = "shrink-0 px-3 py-1 rounded-full text-[0.68rem] font-semibold bg-red-950/50 border border-red-500 text-red-400";
                 gaugeContainer.className = "w-64 h-64 rounded-full ios-blur flex flex-col justify-center items-center relative transition-all duration-300 pulse-red";
                 if (navigator.vibrate) navigator.vibrate(60);
             } else {
                 statusTag.innerText = "SCANNING LIVE";
-                statusTag.className = "px-3 py-1 rounded-full text-xs font-semibold bg-cyan-950/50 border border-cyan-500 text-cyan-400";
+                statusTag.className = "shrink-0 px-3 py-1 rounded-full text-[0.68rem] font-semibold bg-cyan-950/50 border border-cyan-500 text-cyan-400";
                 gaugeContainer.className = "w-64 h-64 rounded-full ios-blur flex flex-col justify-center items-center relative transition-all duration-300 neon-glow-cyan";
             }
         }
@@ -325,7 +404,7 @@
                 startBtn.innerText = "Initialize Sensor Array";
                 startBtn.className = "w-full py-4 rounded-2xl font-semibold tracking-wide text-black bg-gradient-to-r from-cyan-400 to-emerald-400 active:scale-[0.98] transition-transform duration-100";
                 statusTag.innerText = "SYSTEM READY";
-                statusTag.className = "px-3 py-1 rounded-full text-xs font-semibold bg-zinc-900 border border-zinc-800 text-zinc-400";
+                statusTag.className = "shrink-0 px-3 py-1 rounded-full text-[0.68rem] font-semibold bg-zinc-900 border border-zinc-800 text-zinc-400";
                 return;
             }
 
