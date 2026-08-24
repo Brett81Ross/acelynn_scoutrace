@@ -6,4 +6,6 @@ The native Phone Security Sweep inspects Android-exposed installed package metad
 
 Results are risk indicators for review, not a claim that an app is malware. `QUERY_ALL_PACKAGES` is included because device-security/antivirus functionality is a core feature; Play Store distribution requires the applicable package-visibility declaration and policy compliance.
 
+Build validation is performed by the repository Android CI workflow before distributing APK/AAB artifacts.
+
 Acelynn's ScoutTrace™ • Cactus🌵Byte Studios™ • All Rights Reserved
