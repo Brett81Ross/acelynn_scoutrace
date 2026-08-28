@@ -1,7 +1,7 @@
 {
   "name":"Acelynn's ScoutTrace™",
   "short_name":"ScoutTrace",
-  "version":"1.2.0",
+  "version":"1.2.1",
   "start_url":"./",
   "scope":"./",
   "display":"standalone",
