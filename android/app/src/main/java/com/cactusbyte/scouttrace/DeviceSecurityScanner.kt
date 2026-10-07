@@ -81,6 +81,7 @@ class DeviceSecurityScanner(private val context: Context) {
             .put("level",highest)
             .put("summary","Inspected ${packages.size} packages visible to ScoutTrace and Android-exposed security signals. Findings are indicators for review, not proof of malware.")
             .put("visibility",VisibilityStatus(context).describe(packages.size))
+            .put("coverage",ScanCoverage.packageCoverage(packages.size))
             .put("platform","Android ${Build.VERSION.RELEASE}")
             .put("securityPatch",patch.ifBlank{"unknown"})
             .put("network",network)
