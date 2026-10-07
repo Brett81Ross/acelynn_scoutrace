@@ -14,6 +14,7 @@ class ScoutTraceBridge(private val context: Context) {
 
     @JavascriptInterface fun isNativeSecurityAvailable(): Boolean = true
     @JavascriptInterface fun getPlatformInfo(): String = "Android ${android.os.Build.VERSION.RELEASE} (API ${android.os.Build.VERSION.SDK_INT})"
+    @JavascriptInterface fun inspectApkUri(uri: String): String = ApkInspector(context).inspect(Uri.parse(uri)).toString()
 
     @JavascriptInterface fun runSecurityScan(): String {
         val result = DeviceSecurityScanner(context).scan()
