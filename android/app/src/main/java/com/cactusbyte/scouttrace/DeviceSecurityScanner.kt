@@ -95,7 +95,7 @@ class DeviceSecurityScanner(private val context: Context) {
             .put("network",network)
             .put("deviceHealth",health)
             .put("counts",JSONObject().put("appsScanned",packages.size).put("findings",findings.size).put("sideloaded",sideloaded))
-            .put("findings",JSONArray().apply{findings.sortedBy{rank(it.level)}.forEach{put(JSONObject().put("level",it.level).put("title",it.title).put("detail",it.detail).put("packageName",it.packageName))}})
+            .put("findings",JSONArray().apply{findings.sortedBy{rank(it.level)}.forEach{put(JSONObject().put("level",it.level).put("title",it.title).put("detail",it.detail).put("packageName",it.packageName).put("remediation",RemediationGuide.forFinding(it.level,it.packageName)))}})
             .put("appRisks",appRisks)
             .put("permissionMatrix",permissionMatrix)
     }
