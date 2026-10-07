@@ -79,7 +79,8 @@ class DeviceSecurityScanner(private val context: Context) {
         val highest=when{findings.any{it.level=="HIGH CAUTION"}->"HIGH CAUTION";findings.any{it.level=="ELEVATED"}->"ELEVATED";findings.any{it.level=="REVIEW"}->"REVIEW";else->"CLEAR"}
         return JSONObject()
             .put("level",highest)
-            .put("summary","Inspected ${packages.size} installed packages and Android-exposed security signals. Findings are indicators for review, not proof of malware.")
+            .put("summary","Inspected ${packages.size} packages visible to ScoutTrace and Android-exposed security signals. Findings are indicators for review, not proof of malware.")
+            .put("visibility",VisibilityStatus(context).describe(packages.size))
             .put("platform","Android ${Build.VERSION.RELEASE}")
             .put("securityPatch",patch.ifBlank{"unknown"})
             .put("network",network)
