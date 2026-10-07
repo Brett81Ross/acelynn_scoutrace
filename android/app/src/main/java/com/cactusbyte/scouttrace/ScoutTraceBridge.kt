@@ -57,6 +57,28 @@ class ScoutTraceBridge(private val context: Context) {
         return true
     }
 
+    @JavascriptInterface fun exportSecurityReport(): String {
+        val r = DeviceSecurityScanner(context).scan()
+        val counts = r.optJSONObject("counts") ?: JSONObject()
+        val findings = r.optJSONArray("findings") ?: JSONArray()
+        val out = StringBuilder()
+        out.append("Acelynn's ScoutTrace Security Report\n")
+        out.append("Status: ").append(r.optString("level")).append("\n")
+        out.append("Platform: ").append(r.optString("platform")).append("\n")
+        out.append("Security patch: ").append(r.optString("securityPatch")).append("\n")
+        out.append("Packages inspected: ").append(counts.optInt("appsScanned")).append("\n")
+        out.append("Findings: ").append(counts.optInt("findings")).append("\n")
+        out.append("Sideload indicators: ").append(counts.optInt("sideloaded")).append("\n\n")
+        for (i in 0 until findings.length()) {
+            val item = findings.optJSONObject(i) ?: continue
+            out.append("[").append(item.optString("level")).append("] ")
+                .append(item.optString("title")).append(": ")
+                .append(item.optString("detail")).append("\n")
+        }
+        out.append("\nScoutTrace reports observable security indicators; it does not certify a device malware-free.")
+        return out.toString()
+    }
+
     @JavascriptInterface fun privacySummary(): String = JSONObject()
         .put("localOnly", true)
         .put("externalLookups", false)
