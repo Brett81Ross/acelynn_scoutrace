@@ -1,6 +1,9 @@
 package com.cactusbyte.scouttrace
 
 import android.content.Context
+import android.content.Intent
+import android.net.Uri
+import android.provider.Settings
 import android.webkit.JavascriptInterface
 import org.json.JSONArray
 import org.json.JSONObject
@@ -34,6 +37,27 @@ class ScoutTraceBridge(private val context: Context) {
         prefs.edit().remove("timeline").remove("baseline").remove("baselineAt").remove("lastFingerprint").apply()
         return true
     }
+
+    @JavascriptInterface fun openAppSettings(packageName: String): Boolean = launch(Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.parse("package:$packageName")))
+
+    @JavascriptInterface fun requestUninstall(packageName: String): Boolean = launch(Intent(Intent.ACTION_DELETE, Uri.parse("package:$packageName")))
+
+    @JavascriptInterface fun openAccessibilitySettings(): Boolean = launch(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS))
+
+    @JavascriptInterface fun openSecuritySettings(): Boolean = launch(Intent(Settings.ACTION_SECURITY_SETTINGS))
+
+    @JavascriptInterface fun privacySummary(): String = JSONObject()
+        .put("localOnly", true)
+        .put("externalLookups", false)
+        .put("stores", JSONArray(listOf("security baseline", "security timeline", "last scan fingerprint")))
+        .put("statement", "ScoutTrace v2.1 security analysis runs on this Android device. No installed-app inventory or scan history is uploaded by the native engine.")
+        .toString()
+
+    private fun launch(intent: Intent): Boolean = try {
+        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+        context.startActivity(intent)
+        true
+    } catch (_: Exception) { false }
 
     private fun baselineComparison(current: JSONObject): JSONObject {
         val raw = prefs.getString("baseline", null) ?: return JSONObject().put("exists", false)
