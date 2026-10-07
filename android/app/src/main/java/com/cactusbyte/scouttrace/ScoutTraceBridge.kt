@@ -27,6 +27,7 @@ class ScoutTraceBridge(private val context: Context) {
         result.put("baseline", baseline)
         result.put("timeline", timeline())
         result.put("dispositions", AppDispositionStore(context).all())
+        result.put("narrative", InvestigationNarrative.build(result))
         return result.toString()
     }
 
