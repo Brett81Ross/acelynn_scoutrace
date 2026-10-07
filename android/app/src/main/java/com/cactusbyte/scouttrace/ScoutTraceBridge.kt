@@ -23,6 +23,7 @@ class ScoutTraceBridge(private val context: Context) {
         prefs.edit().putString("lastFingerprint", fingerprint).apply()
         result.put("baseline", baselineComparison(result))
         result.put("timeline", timeline())
+        result.put("dispositions", AppDispositionStore(context).all())
         return result.toString()
     }
 
@@ -82,7 +83,7 @@ class ScoutTraceBridge(private val context: Context) {
     @JavascriptInterface fun privacySummary(): String = JSONObject()
         .put("localOnly", true)
         .put("externalLookups", false)
-        .put("stores", JSONArray(listOf("security baseline", "security timeline", "last scan fingerprint")))
+        .put("stores", JSONArray(listOf("security baseline", "security timeline", "last scan fingerprint", "trusted/watch app choices")))
         .put("statement", "ScoutTrace v2.1 security analysis runs on this Android device. No installed-app inventory or scan history is uploaded by the native engine.")
         .toString()
 
