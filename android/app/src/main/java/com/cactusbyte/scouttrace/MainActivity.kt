@@ -67,7 +67,7 @@ class MainActivity : Activity() {
             body.innerHTML='<div class="panel"><div class="notice"><b>Native engine connected.</b> Analysis is local to this device.</div><div class="acts"><button id="nativePhoneScan" class="btn primary">Run Complete ScoutTrace</button><button id="saveBaseline" class="btn">Save Trusted Baseline</button><button id="privacyInfo" class="btn">Privacy</button><button id="exportReport" class="btn">Export Report</button></div><div id="nativePhoneResult" class="result" hidden></div></div>';
             document.getElementById('saveBaseline').onclick=()=>{const r=JSON.parse(window.ScoutTraceNative.saveSecurityBaseline());alert(r.ok?'Trusted baseline saved on this device.':'Baseline could not be saved.');};
             document.getElementById('privacyInfo').onclick=()=>{const p=JSON.parse(window.ScoutTraceNative.privacySummary());alert(p.statement);};
-            document.getElementById('exportReport').onclick=()=>{const t=window.ScoutTraceNative.exportSecurityReport();if(navigator.share)navigator.share({title:'ScoutTrace Security Report',text:t}).catch(()=>{});else navigator.clipboard?.writeText(t).then(()=>alert('Security report copied.'));};
+            document.getElementById('exportReport').onclick=()=>{if(!window.ScoutTraceNative.shareSecurityReport())alert('Android share sheet could not be opened.');};
             document.getElementById('nativePhoneScan').onclick=()=>{
               const out=document.getElementById('nativePhoneResult'); out.hidden=false; out.innerHTML='<p class="muted">Running ScoutTrace…</p>';
               try{
