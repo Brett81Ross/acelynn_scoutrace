@@ -64,8 +64,15 @@ class DeviceSecurityScanner(private val context: Context) {
             if(canInstall){score+=2;reasons+="can request package installs"}
             if(debuggable){score+=1;reasons+="debuggable build"}
             if(enabledA11y && (overlay || canInstall || side)) score+=3
-            val level=when{score>=7->"HIGH CAUTION";score>=4->"ELEVATED";score>=2->"REVIEW";else->"CLEAR"}
             val evidence=EvidenceModel.assess(side,enabledA11y,admin,overlay,canInstall,debuggable)
+            val correlated=evidence.optBoolean("correlated")
+            val indicatorCount=evidence.optInt("indicatorCount")
+            val level=when{
+                correlated && score>=7->"HIGH CAUTION"
+                indicatorCount>=2 && score>=4->"ELEVATED"
+                score>=1->"REVIEW"
+                else->"CLEAR"
+            }
             appRisks.put(JSONObject().put("name",appLabel(pkg)).put("packageName",pkg.packageName).put("level",level).put("score",score).put("installer",installer?:"unknown").put("reasons",JSONArray(reasons)).put("evidence",evidence))
             if(level!="CLEAR") findings+=Finding(level,appLabel(pkg),reasons.joinToString(" • "),pkg.packageName)
         }
