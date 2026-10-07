@@ -38,12 +38,8 @@ class MainActivity : Activity() {
             override fun onPermissionRequest(request: PermissionRequest) {
                 runOnUiThread {
                     if (request.resources.contains(PermissionRequest.RESOURCE_VIDEO_CAPTURE)) {
-                        if (checkSelfPermission(Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED) {
-                            request.grant(arrayOf(PermissionRequest.RESOURCE_VIDEO_CAPTURE))
-                        } else {
-                            pendingPermissionRequest = request
-                            requestPermissions(arrayOf(Manifest.permission.CAMERA), 201)
-                        }
+                        if (checkSelfPermission(Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED) request.grant(arrayOf(PermissionRequest.RESOURCE_VIDEO_CAPTURE))
+                        else { pendingPermissionRequest = request; requestPermissions(arrayOf(Manifest.permission.CAMERA), 201) }
                     } else request.deny()
                 }
             }
@@ -54,51 +50,49 @@ class MainActivity : Activity() {
 
     private fun injectPhoneSecuritySweep() {
         val js = """
-            (() => {
-              if (window.__scoutTracePhoneSweepInjected) return;
-              window.__scoutTracePhoneSweepInjected = true;
-              const grid = document.querySelector('.grid');
-              if (!grid) return;
-              const card = document.createElement('button');
-              card.className = 'card';
-              card.innerHTML = '<div class="ico">⌾</div><strong>Phone Security Sweep</strong><span>Native Android inspection of installed apps and security-relevant device metadata.</span>';
-              card.addEventListener('click', () => {
-                const home = document.getElementById('home'), scan = document.getElementById('scan'), body = document.getElementById('scanBody');
-                if (!home || !scan || !body) return;
-                home.classList.remove('active'); scan.classList.add('active');
-                document.getElementById('scanType').textContent='PHONE SECURITY SWEEP';
-                document.getElementById('scanTitle').textContent='Android device security';
-                document.getElementById('scanDesc').textContent='Inspects Android-exposed installed-app and security metadata. Findings are indicators for review, not proof of malware.';
-                body.innerHTML='<div class="panel"><div class="notice"><b>Native engine connected:</b> ScoutTrace can inspect installed apps and Android security signals on this device.</div><div class="acts"><button id="nativePhoneScan" class="btn primary">Scan This Phone</button></div><div id="nativePhoneResult" class="result" hidden></div></div>';
-                document.getElementById('nativePhoneScan').onclick = () => {
-                  const out=document.getElementById('nativePhoneResult');
-                  try {
-                    const r=JSON.parse(window.ScoutTraceNative.runSecurityScan()), counts=r.counts||{}, fs=r.findings||[];
-                    const klass=l=>l==='CLEAR'?'clear':l==='REVIEW'?'review':l==='ELEVATED'?'elevated':'high';
-                    const esc=s=>String(s??'').replace(/[&<>\"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;',"'":'&#39;'}[c]));
-                    out.hidden=false;
-                    out.innerHTML='<div class="status '+klass(r.level)+'">'+esc(r.level)+'</div><p class="muted">'+esc(r.summary)+'</p><div class="notice"><b>'+counts.appsScanned+'</b> apps inspected • <b>'+counts.findings+'</b> findings • <b>'+counts.sideloaded+'</b> sideloaded indicators</div>'+fs.map(f=>'<div class="hist"><strong>'+esc(f.title||f.packageName)+'</strong><div class="status '+klass(f.level)+'">'+esc(f.level)+'</div><div class="muted">'+esc(f.detail)+'</div></div>').join('');
-                  } catch(e) { out.hidden=false; out.innerHTML='<div class="status review">REVIEW</div><p class="muted">Native scan failed: '+e.message+'</p>'; }
-                };
-              });
-              grid.appendChild(card);
-            })();
+        (() => {
+          if (window.__scoutTracePhoneSweepInjected) return;
+          window.__scoutTracePhoneSweepInjected = true;
+          const grid=document.querySelector('.grid'); if(!grid) return;
+          const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+          const klass=l=>l==='CLEAR'?'clear':l==='REVIEW'?'review':l==='ELEVATED'?'elevated':'high';
+          const card=document.createElement('button'); card.className='card';
+          card.innerHTML='<div class="ico">⌾</div><strong>Complete ScoutTrace</strong><span>Native Android device sweep, baseline comparison, permissions and prioritized remediation.</span>';
+          card.onclick=()=>{
+            const home=document.getElementById('home'),scan=document.getElementById('scan'),body=document.getElementById('scanBody');
+            if(!home||!scan||!body)return; home.classList.remove('active');scan.classList.add('active');
+            document.getElementById('scanType').textContent='COMPLETE SCOUTTRACE';
+            document.getElementById('scanTitle').textContent='Android security investigation';
+            document.getElementById('scanDesc').textContent='Detect → correlate → explain → prioritize → remediate. Findings are evidence for review, not proof of malware.';
+            body.innerHTML='<div class="panel"><div class="notice"><b>Native engine connected.</b> Analysis is local to this device.</div><div class="acts"><button id="nativePhoneScan" class="btn primary">Run Complete ScoutTrace</button><button id="saveBaseline" class="btn">Save Trusted Baseline</button><button id="privacyInfo" class="btn">Privacy</button></div><div id="nativePhoneResult" class="result" hidden></div></div>';
+            document.getElementById('saveBaseline').onclick=()=>{const r=JSON.parse(window.ScoutTraceNative.saveSecurityBaseline());alert(r.ok?'Trusted baseline saved on this device.':'Baseline could not be saved.');};
+            document.getElementById('privacyInfo').onclick=()=>{const p=JSON.parse(window.ScoutTraceNative.privacySummary());alert(p.statement);};
+            document.getElementById('nativePhoneScan').onclick=()=>{
+              const out=document.getElementById('nativePhoneResult'); out.hidden=false; out.innerHTML='<p class="muted">Running ScoutTrace…</p>';
+              try{
+                const r=JSON.parse(window.ScoutTraceNative.runSecurityScan()),c=r.counts||{},fs=r.findings||[],b=r.baseline||{},pm=r.permissionMatrix||{},tl=r.timeline||[];
+                const changes=b.exists?((b.newApps||[]).length+(b.removedApps||[]).length):0;
+                const priority=fs[0];
+                const permissionHtml=Object.entries(pm).map(([k,v])=>'<div class="hist"><strong>'+esc(k.toUpperCase())+'</strong><div class="muted">'+(v||[]).length+' app(s) request this permission</div></div>').join('');
+                const findingHtml=fs.length?fs.map(f=>'<div class="hist"><strong>'+esc(f.title||f.packageName)+'</strong><div class="status '+klass(f.level)+'">'+esc(f.level)+'</div><div class="muted">'+esc(f.detail)+'</div>'+(f.packageName?'<div class="acts"><button class="btn appSettings" data-pkg="'+esc(f.packageName)+'">Review App</button><button class="btn uninstallApp" data-pkg="'+esc(f.packageName)+'">Uninstall…</button></div>':'')+'</div>').join(''):'<div class="notice"><b>No elevated app indicators found.</b></div>';
+                out.innerHTML='<div class="status '+klass(r.level)+'">'+esc(r.level)+'</div><h3>ScoutTrace Report</h3><div class="notice"><b>'+c.appsScanned+'</b> packages inspected • <b>'+c.findings+'</b> findings • <b>'+c.sideloaded+'</b> sideloaded indicators • <b>'+changes+'</b> baseline changes</div>'+(priority?'<div class="notice"><b>Priority:</b> '+esc(priority.title)+' — '+esc(priority.detail)+'</div>':'')+'<h3>Findings</h3>'+findingHtml+'<h3>Permission Matrix</h3>'+permissionHtml+'<h3>Baseline</h3><div class="hist"><div class="muted">'+(b.exists?'New apps: '+(b.newApps||[]).length+' • Removed apps: '+(b.removedApps||[]).length+(b.levelChanged?' • Risk level changed':' • Risk level unchanged'):'No trusted baseline saved yet.')+'</div></div><h3>Security Timeline</h3>'+(tl.length?tl.slice(0,10).map(e=>'<div class="hist"><strong>'+esc(e.title)+'</strong><div class="muted">'+new Date(e.time).toLocaleString()+' • '+esc(e.detail)+'</div></div>').join(''):'<p class="muted">No security-state changes recorded yet.</p>')+'<div class="acts"><button id="openA11y" class="btn">Accessibility Settings</button><button id="openSecurity" class="btn">Security Settings</button><button id="clearNativeHistory" class="btn">Clear Local Security Data</button></div>';
+                out.querySelectorAll('.appSettings').forEach(x=>x.onclick=()=>window.ScoutTraceNative.openAppSettings(x.dataset.pkg));
+                out.querySelectorAll('.uninstallApp').forEach(x=>x.onclick=()=>window.ScoutTraceNative.requestUninstall(x.dataset.pkg));
+                document.getElementById('openA11y').onclick=()=>window.ScoutTraceNative.openAccessibilitySettings();
+                document.getElementById('openSecurity').onclick=()=>window.ScoutTraceNative.openSecuritySettings();
+                document.getElementById('clearNativeHistory').onclick=()=>{if(confirm('Clear ScoutTrace baseline and local security timeline?')){window.ScoutTraceNative.clearSecurityHistory();out.innerHTML='<div class="notice">Local ScoutTrace security data cleared.</div>';}}
+              }catch(e){out.innerHTML='<div class="status review">REVIEW</div><p class="muted">Native scan failed: '+esc(e.message)+'</p>';}
+            };
+          };
+          grid.appendChild(card);
+        })();
         """.trimIndent()
         webView.evaluateJavascript(js, null)
     }
 
-    override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<out String>, grantResults: IntArray) {
-        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
-        if (requestCode == 201) {
-            val req = pendingPermissionRequest
-            pendingPermissionRequest = null
-            if (grantResults.firstOrNull() == PackageManager.PERMISSION_GRANTED) req?.grant(arrayOf(PermissionRequest.RESOURCE_VIDEO_CAPTURE)) else req?.deny()
-        }
+    override fun onRequestPermissionsResult(requestCode:Int,permissions:Array<out String>,grantResults:IntArray){
+        super.onRequestPermissionsResult(requestCode,permissions,grantResults)
+        if(requestCode==201){val req=pendingPermissionRequest;pendingPermissionRequest=null;if(grantResults.firstOrNull()==PackageManager.PERMISSION_GRANTED)req?.grant(arrayOf(PermissionRequest.RESOURCE_VIDEO_CAPTURE))else req?.deny()}
     }
-
-    override fun onDestroy() {
-        webView.removeJavascriptInterface("ScoutTraceNative")
-        webView.destroy()
-        super.onDestroy()
-    }
+    override fun onDestroy(){webView.removeJavascriptInterface("ScoutTraceNative");webView.destroy();super.onDestroy()}
 }
