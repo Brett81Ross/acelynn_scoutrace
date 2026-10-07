@@ -84,6 +84,16 @@ class ScoutTraceBridge(private val context: Context) {
         return out.toString()
     }
 
+    @JavascriptInterface fun shareSecurityReport(): Boolean {
+        val text = exportSecurityReport()
+        val intent = Intent(Intent.ACTION_SEND).apply {
+            type = "text/plain"
+            putExtra(Intent.EXTRA_SUBJECT, "Acelynn's ScoutTrace Security Report")
+            putExtra(Intent.EXTRA_TEXT, text)
+        }
+        return launch(Intent.createChooser(intent, "Share ScoutTrace report"))
+    }
+
     @JavascriptInterface fun privacySummary(): String = PrivacyCenter.summary().toString()
 
     private fun launch(intent: Intent): Boolean = try {
