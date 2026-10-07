@@ -39,6 +39,9 @@ jobs:
       - name: Build release bundle
         working-directory: android
         run: gradle :app:bundlePlayRelease --stacktrace
+      - name: Verify Play manifest policy gate
+        working-directory: android
+        run: bash scripts/verify_play_manifest.sh
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
