@@ -14,16 +14,21 @@ Validation branch only. No production deployment is authorized by this document.
 - Security timeline.
 - Trusted / Watch classification foundation.
 - App settings, accessibility settings, security settings, and uninstall remediation entry points.
-- Evidence-based remediation guidance model.
+- Evidence-based remediation guidance model, now attached to findings.
+- Prioritized investigation narrative attached to scan results and headline wired into Complete ScoutTrace UI.
 - Native Privacy Center model.
 - Text security report export.
-- Native Android report sharing.
+- Native Android report sharing, wired to the Complete ScoutTrace Export Report action.
 - Static APK Inspector foundation: SHA-256, package, version, requested permissions.
 - Play/internal distribution flavors.
 - Play manifest removes unrestricted package visibility and declares limited launcher visibility.
 - Scan coverage/visibility disclosures.
 - Prioritized investigation narrative model.
 - Play unit-test and lint gates in CI configuration.
+- Play merged-manifest policy gate rejects unrestricted package visibility.
+- Evidence-model and baseline-narrative regression tests.
+- OEM-aware device profile foundation for Samsung, Pixel, Motorola, and generic Android fallback.
+- Explicit disabled-state model for external threat reputation so the UI cannot imply a lookup occurred.
 
 ## Partially implemented / needs completion
 - Permission Matrix special-access categories.
@@ -32,7 +37,7 @@ Validation branch only. No production deployment is authorized by this document.
 - APK signing-certificate and SDK metadata.
 - Protected threat-reputation backend.
 - Encrypted local baseline/history storage.
-- Complete ScoutTrace UI rendering of new narrative/remediation/baseline fields.
+- Complete ScoutTrace UI rendering is substantially wired for narrative headline, remediation next steps, baseline narrative, visible-package wording, and coverage disclosure; final device QA remains.
 - Branded QR sharing.
 - Background baseline checks.
 - iOS posture/environment expansion.
