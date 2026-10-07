@@ -2,7 +2,7 @@ name: Build ScoutTrace Android
 
 on:
   push:
-    branches: [ main ]
+    branches: [ main, android-build-validation ]
     paths:
       - 'android/**'
       - '.github/workflows/build-android.yml'
