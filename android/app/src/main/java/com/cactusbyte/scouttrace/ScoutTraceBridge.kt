@@ -46,6 +46,17 @@ class ScoutTraceBridge(private val context: Context) {
 
     @JavascriptInterface fun openSecuritySettings(): Boolean = launch(Intent(Settings.ACTION_SECURITY_SETTINGS))
 
+    @JavascriptInterface fun setAppDisposition(packageName: String, state: String): Boolean =
+        AppDispositionStore(context).set(packageName, state)
+
+    @JavascriptInterface fun getAppDispositions(): String =
+        AppDispositionStore(context).all().toString()
+
+    @JavascriptInterface fun clearAppDispositions(): Boolean {
+        AppDispositionStore(context).clear()
+        return true
+    }
+
     @JavascriptInterface fun privacySummary(): String = JSONObject()
         .put("localOnly", true)
         .put("externalLookups", false)
