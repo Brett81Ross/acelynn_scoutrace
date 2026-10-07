@@ -113,7 +113,17 @@ class ScoutTraceBridge(private val context: Context) {
     }
 
     private fun fingerprint(result: JSONObject): String {
-        val digest = MessageDigest.getInstance("SHA-256").digest(result.optJSONArray("appRisks").toString().toByteArray())
+        val risks = result.optJSONArray("appRisks") ?: JSONArray()
+        val stable = (0 until risks.length()).mapNotNull { i ->
+            risks.optJSONObject(i)?.let { item ->
+                listOf(
+                    item.optString("packageName"),
+                    item.optString("level"),
+                    item.optInt("score").toString()
+                ).joinToString("|")
+            }
+        }.sorted().joinToString("\n")
+        val digest = MessageDigest.getInstance("SHA-256").digest(stable.toByteArray())
         return digest.joinToString("") { "%02x".format(it) }
     }
 
