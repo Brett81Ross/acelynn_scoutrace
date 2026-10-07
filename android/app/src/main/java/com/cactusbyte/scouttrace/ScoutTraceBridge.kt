@@ -100,9 +100,23 @@ class ScoutTraceBridge(private val context: Context) {
             val base = JSONObject(raw)
             val nowPkgs = packageSet(current.optJSONArray("appRisks"))
             val basePkgs = packageSet(base.optJSONArray("appRisks"))
+            val baseRisk = riskMap(base.optJSONArray("appRisks"))
+            val nowRisk = riskMap(current.optJSONArray("appRisks"))
+            val changed = JSONArray()
+            (baseRisk.keys intersect nowRisk.keys).sorted().forEach { pkg ->
+                val before = baseRisk[pkg]!!
+                val after = nowRisk[pkg]!!
+                if (before.first != after.first || before.second != after.second) {
+                    changed.put(JSONObject()
+                        .put("packageName", pkg)
+                        .put("fromLevel", before.first).put("toLevel", after.first)
+                        .put("fromScore", before.second).put("toScore", after.second))
+                }
+            }
             JSONObject().put("exists", true).put("savedAt", prefs.getLong("baselineAt", 0))
                 .put("newApps", JSONArray((nowPkgs - basePkgs).sorted()))
                 .put("removedApps", JSONArray((basePkgs - nowPkgs).sorted()))
+                .put("riskChanges", changed)
                 .put("levelChanged", base.optString("level") != current.optString("level"))
         } catch (_: Exception) { JSONObject().put("exists", false) }
     }
@@ -110,6 +124,15 @@ class ScoutTraceBridge(private val context: Context) {
     private fun packageSet(a: JSONArray?): Set<String> {
         if (a == null) return emptySet()
         return (0 until a.length()).mapNotNull { a.optJSONObject(it)?.optString("packageName")?.takeIf(String::isNotBlank) }.toSet()
+    }
+
+    private fun riskMap(a: JSONArray?): Map<String, Pair<String, Int>> {
+        if (a == null) return emptyMap()
+        return (0 until a.length()).mapNotNull { i ->
+            val item = a.optJSONObject(i) ?: return@mapNotNull null
+            val pkg = item.optString("packageName").takeIf(String::isNotBlank) ?: return@mapNotNull null
+            pkg to (item.optString("level") to item.optInt("score"))
+        }.toMap()
     }
 
     private fun fingerprint(result: JSONObject): String {
