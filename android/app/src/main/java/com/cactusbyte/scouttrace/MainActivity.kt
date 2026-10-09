@@ -97,9 +97,10 @@ class MainActivity : Activity() {
             document.getElementById('scanType').textContent='COMPLETE SCOUTTRACE';
             document.getElementById('scanTitle').textContent='Android security investigation';
             document.getElementById('scanDesc').textContent='Detect → correlate → explain → prioritize → remediate. Findings are evidence for review, not proof of malware.';
-            body.innerHTML='<div class="panel"><div class="notice"><b>Native engine connected.</b> Analysis is local to this device.</div><div class="acts"><button id="nativePhoneScan" class="btn primary">Run Complete ScoutTrace</button><button id="saveBaseline" class="btn">Save Trusted Baseline</button><button id="privacyInfo" class="btn">Privacy</button><button id="exportReport" class="btn">Export Report</button></div><div id="nativePhoneResult" class="result" hidden></div></div>';
+            body.innerHTML='<div class="panel"><div class="notice"><b>Native engine connected.</b> Analysis is local to this device.</div><div class="acts"><button id="nativePhoneScan" class="btn primary">Run Complete ScoutTrace</button><button id="saveBaseline" class="btn">Save Trusted Baseline</button><button id="privacyInfo" class="btn">Privacy</button><button id="exportReport" class="btn">Export Report</button><button id="apkInspect" class="btn">Inspect APK</button></div><div id="nativePhoneResult" class="result" hidden></div></div>';
             document.getElementById('saveBaseline').onclick=()=>{const r=JSON.parse(window.ScoutTraceNative.saveSecurityBaseline());alert(r.ok?'Trusted baseline saved on this device.':'Baseline could not be saved.');};
             document.getElementById('privacyInfo').onclick=()=>{const p=JSON.parse(window.ScoutTraceNative.privacySummary());alert(p.statement);};
+            document.getElementById('apkInspect').onclick=()=>window.ScoutTraceNative.openApkPicker();
             document.getElementById('exportReport').onclick=()=>{if(!window.ScoutTraceNative.shareSecurityReport())alert('Android share sheet could not be opened.');};
             document.getElementById('nativePhoneScan').onclick=()=>{
               const out=document.getElementById('nativePhoneResult'); out.hidden=false; out.innerHTML='<p class="muted">Running ScoutTrace…</p>';
