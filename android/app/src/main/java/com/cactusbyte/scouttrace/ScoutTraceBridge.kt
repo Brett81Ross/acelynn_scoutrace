@@ -12,6 +12,12 @@ import java.security.MessageDigest
 class ScoutTraceBridge(private val context: Context) {
     private val prefs = context.getSharedPreferences("scouttrace_security", Context.MODE_PRIVATE)
 
+    @JavascriptInterface fun openApkPicker(): Boolean {
+        val activity = context as? MainActivity ?: return false
+        activity.requestApkInspection()
+        return true
+    }
+
     @JavascriptInterface fun isNativeSecurityAvailable(): Boolean = true
     @JavascriptInterface fun getPlatformInfo(): String = "Android ${android.os.Build.VERSION.RELEASE} (API ${android.os.Build.VERSION.SDK_INT})"
     @JavascriptInterface fun inspectApkUri(uri: String): String = ApkInspector(context).inspect(Uri.parse(uri)).toString()
