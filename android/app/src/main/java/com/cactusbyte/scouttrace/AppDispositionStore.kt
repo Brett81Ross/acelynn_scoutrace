@@ -7,7 +7,7 @@ class AppDispositionStore(context: Context) {
     private val prefs = context.getSharedPreferences("scouttrace_app_dispositions", Context.MODE_PRIVATE)
 
     fun set(packageName: String, state: String): Boolean {
-        if (packageName.isBlank() || state !in setOf("TRUSTED", "WATCH", "DEFAULT")) return false
+        if (packageName.isBlank() || state !in setOf("TRUSTED", "WATCH", "IGNORE", "DEFAULT")) return false
         if (state == "DEFAULT") prefs.edit().remove(packageName).apply()
         else prefs.edit().putString(packageName, state).apply()
         return true
