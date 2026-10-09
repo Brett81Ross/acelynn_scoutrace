@@ -49,6 +49,7 @@ class MainActivity : Activity() {
         webView.webChromeClient = object : WebChromeClient() {
             override fun onPermissionRequest(request: PermissionRequest) {
                 runOnUiThread {
+                    if (request.origin.scheme != "https" || request.origin.host != trustedHost) { request.deny(); return@runOnUiThread }
                     if (request.resources.contains(PermissionRequest.RESOURCE_VIDEO_CAPTURE)) {
                         if (checkSelfPermission(Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED) request.grant(arrayOf(PermissionRequest.RESOURCE_VIDEO_CAPTURE))
                         else { pendingPermissionRequest = request; requestPermissions(arrayOf(Manifest.permission.CAMERA), 201) }
