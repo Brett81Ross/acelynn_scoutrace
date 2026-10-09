@@ -15,6 +15,7 @@ import android.webkit.WebViewClient
 class MainActivity : Activity() {
     private lateinit var webView: WebView
     private var pendingPermissionRequest: PermissionRequest? = null
+    private val trustedHost = "acelynn-scoutrace.vercel.app"
     private val apkPickerCode = 301
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -34,7 +35,7 @@ class MainActivity : Activity() {
         webView.webViewClient = object : WebViewClient() {
             override fun onPageFinished(view: WebView, url: String) {
                 super.onPageFinished(view, url)
-                injectPhoneSecuritySweep()
+                if (android.net.Uri.parse(url).host == trustedHost && android.net.Uri.parse(url).scheme == "https") injectPhoneSecuritySweep()
             }
         }
         webView.webChromeClient = object : WebChromeClient() {
