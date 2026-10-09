@@ -61,6 +61,8 @@ class MainActivity : Activity() {
         webView.loadUrl("https://acelynn-scoutrace.vercel.app/")
     }
 
+    fun requestApkInspection() = runOnUiThread { openApkPicker() }
+
     private fun openApkPicker() {
         val intent = Intent(Intent.ACTION_OPEN_DOCUMENT).apply {
             addCategory(Intent.CATEGORY_OPENABLE)
