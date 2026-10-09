@@ -101,6 +101,7 @@ class MainActivity : Activity() {
             document.getElementById('saveBaseline').onclick=()=>{const r=JSON.parse(window.ScoutTraceNative.saveSecurityBaseline());alert(r.ok?'Trusted baseline saved on this device.':'Baseline could not be saved.');};
             document.getElementById('privacyInfo').onclick=()=>{const p=JSON.parse(window.ScoutTraceNative.privacySummary());alert(p.statement);};
             document.getElementById('apkInspect').onclick=()=>window.ScoutTraceNative.openApkPicker();
+            window.addEventListener('scouttrace-apk-result',event=>{const out=document.getElementById('apkResult');if(!out)return;try{const result=JSON.parse(event.detail);out.hidden=false;out.textContent=result.ok?JSON.stringify(result,null,2):'APK inspection failed: '+result.error;}catch(err){out.hidden=false;out.textContent='Unable to display APK result.';}});
             document.getElementById('exportReport').onclick=()=>{if(!window.ScoutTraceNative.shareSecurityReport())alert('Android share sheet could not be opened.');};
             document.getElementById('nativePhoneScan').onclick=()=>{
               const out=document.getElementById('nativePhoneResult'); out.hidden=false; out.innerHTML='<p class="muted">Running ScoutTrace…</p>';
