@@ -32,7 +32,7 @@ Validation branch only. No production deployment is authorized by this document.
 
 ## Partially implemented / needs completion
 - Permission Matrix special-access categories.
-- Trusted / Watch / Ignore states are stored and the UI exposes Ignore/Reset; prioritization/noise suppression semantics still need implementation and QA.
+- Trusted / Watch / Ignore states are stored; Ignore/Reset are exposed in UI. Ignored lower-priority findings are hidden from display and priority callout, while HIGH CAUTION remains visible. Watch-specific highlighting and device QA remain open.
 - APK Inspector native document picker.
 - APK signing-certificate and SDK metadata.
 - Protected threat-reputation backend.
