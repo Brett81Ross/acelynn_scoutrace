@@ -4,6 +4,8 @@ import android.Manifest
 import android.app.Activity
 import android.content.pm.PackageManager
 import android.os.Bundle
+import android.content.Intent
+import android.net.Uri
 import android.webkit.PermissionRequest
 import android.webkit.WebChromeClient
 import android.webkit.WebSettings
@@ -13,6 +15,7 @@ import android.webkit.WebViewClient
 class MainActivity : Activity() {
     private lateinit var webView: WebView
     private var pendingPermissionRequest: PermissionRequest? = null
+    private val apkPickerCode = 301
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -46,6 +49,24 @@ class MainActivity : Activity() {
         }
         webView.addJavascriptInterface(ScoutTraceBridge(this), "ScoutTraceNative")
         webView.loadUrl("https://acelynn-scoutrace.vercel.app/")
+    }
+
+    private fun openApkPicker() {
+        val intent = Intent(Intent.ACTION_OPEN_DOCUMENT).apply {
+            addCategory(Intent.CATEGORY_OPENABLE)
+            type = "*/*"
+        }
+        startActivityForResult(intent, apkPickerCode)
+    }
+
+    @Deprecated("Activity result API")
+    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
+        super.onActivityResult(requestCode, resultCode, data)
+        if (requestCode != apkPickerCode || resultCode != RESULT_OK) return
+        val uri: Uri = data?.data ?: return
+        val result = try { ApkInspector(this).inspect(uri).toString() }
+            catch (e: Exception) { org.json.JSONObject().put("ok", false).put("error", e.message ?: "APK inspection failed").toString() }
+        webView.evaluateJavascript("window.dispatchEvent(new CustomEvent(\"scouttrace-apk-result\",{detail:"+org.json.JSONObject.quote(result)+"}));", null)
     }
 
     private fun injectPhoneSecuritySweep() {
