@@ -30,6 +30,15 @@ jobs:
       - name: Run Play flavor unit tests
         working-directory: android
         run: gradle :app:testPlayDebugUnitTest --stacktrace --info --console=plain
+      - name: Upload unit-test diagnostics
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: scouttrace-unit-test-diagnostics
+          path: |
+            android/app/build/test-results/**
+            android/app/build/reports/tests/**
+          if-no-files-found: warn
       - name: Lint Play flavor
         working-directory: android
         run: gradle :app:lintPlayDebug --stacktrace
