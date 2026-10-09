@@ -27,7 +27,7 @@ class ApkInspector(private val context: Context) {
                 }
             }
             @Suppress("DEPRECATION")
-            val info = context.packageManager.getPackageArchiveInfo(temp.absolutePath, PackageManager.GET_PERMISSIONS)
+            val info = context.packageManager.getPackageArchiveInfo(temp.absolutePath, PackageManager.GET_PERMISSIONS or PackageManager.GET_SIGNING_CERTIFICATES)
                 ?: return JSONObject().put("ok", false).put("error", "Android could not parse the selected APK.")
             val permissions = info.requestedPermissions?.toList().orEmpty()
             return JSONObject()
@@ -35,6 +35,12 @@ class ApkInspector(private val context: Context) {
                 .put("sha256", digest.digest().joinToString("") { "%02x".format(it) })
                 .put("packageName", info.packageName)
                 .put("versionName", info.versionName ?: "unknown")
+                .put("versionCode", info.longVersionCode)
+                .put("minSdk", info.applicationInfo?.minSdkVersion ?: -1)
+                .put("targetSdk", info.applicationInfo?.targetSdkVersion ?: -1)
+                .put("signingCertificateSha256", JSONArray(info.signingInfo?.apkContentsSigners?.map { cert ->
+                    MessageDigest.getInstance("SHA-256").digest(cert.toByteArray()).joinToString("") { "%02x".format(it) }
+                }.orEmpty()))
                 .put("requestedPermissions", JSONArray(permissions))
                 .put("note", "Local static APK metadata inspection only.")
         } finally {
