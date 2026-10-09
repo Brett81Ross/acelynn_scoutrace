@@ -73,7 +73,7 @@ class MainActivity : Activity() {
               try{
                 const r=JSON.parse(window.ScoutTraceNative.runSecurityScan()),c=r.counts||{},fs=r.findings||[],b=r.baseline||{},pm=r.permissionMatrix||{},tl=r.timeline||[],disp=r.dispositions||{},cov=r.coverage||{},n=r.narrative||{};
                 const changes=b.exists?((b.newApps||[]).length+(b.removedApps||[]).length+(b.riskChanges||[]).length):0,bn=b.narrative||{};
-                const priority=fs.find(f=>!(disp[f.packageName]==='IGNORE'&&f.level!=='HIGH CAUTION')),headline=n.headline||'ScoutTrace investigation complete';
+                const priority=visibleFindings[0],headline=n.headline||'ScoutTrace investigation complete';
                 const permissionHtml=Object.entries(pm).map(([k,v])=>'<div class="hist"><strong>'+esc(k.toUpperCase())+'</strong><div class="muted">'+(v||[]).length+' app(s) request this permission</div></div>').join('');
                 const visibleFindings=fs.filter(f=>!(disp[f.packageName]==='IGNORE' && f.level!=='HIGH CAUTION'));
                 visibleFindings.sort((a,b)=>Number(disp[b.packageName]==='WATCH')-Number(disp[a.packageName]==='WATCH'));
