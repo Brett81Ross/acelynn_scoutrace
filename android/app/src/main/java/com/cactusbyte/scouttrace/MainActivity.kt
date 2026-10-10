@@ -76,9 +76,15 @@ class MainActivity : Activity() {
         super.onActivityResult(requestCode, resultCode, data)
         if (requestCode != apkPickerCode || resultCode != RESULT_OK) return
         val uri: Uri = data?.data ?: return
-        val result = try { ApkInspector(this).inspect(uri).toString() }
-            catch (e: Exception) { org.json.JSONObject().put("ok", false).put("error", e.message ?: "APK inspection failed").toString() }
-        webView.evaluateJavascript("window.dispatchEvent(new CustomEvent(\"scouttrace-apk-result\",{detail:"+org.json.JSONObject.quote(result)+"}));", null)
+        Thread {
+            val result = try { ApkInspector(applicationContext).inspect(uri).toString() }
+                catch (e: Exception) { org.json.JSONObject().put("ok", false).put("error", e.message ?: "APK inspection failed").toString() }
+            runOnUiThread {
+                if (!isFinishing && !isDestroyed) {
+                    webView.evaluateJavascript("window.dispatchEvent(new CustomEvent(\"scouttrace-apk-result\",{detail:"+org.json.JSONObject.quote(result)+"}));", null)
+                }
+            }
+        }.start()
     }
 
     private fun injectPhoneSecuritySweep() {
