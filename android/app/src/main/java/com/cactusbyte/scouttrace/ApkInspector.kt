@@ -38,7 +38,7 @@ class ApkInspector(private val context: Context) {
                 .put("versionCode", info.longVersionCode)
                 .put("minSdk", info.applicationInfo?.minSdkVersion ?: -1)
                 .put("targetSdk", info.applicationInfo?.targetSdkVersion ?: -1)
-                .put("signingCertificateSha256", JSONArray(info.signingInfo?.apkContentsSigners?.map { cert ->
+                .put("signingCertificateSha256", JSONArray((if (android.os.Build.VERSION.SDK_INT >= 28) info.signingInfo?.apkContentsSigners?.toList() else null)?.map { cert ->
                     MessageDigest.getInstance("SHA-256").digest(cert.toByteArray()).joinToString("") { "%02x".format(it) }
                 }.orEmpty()))
                 .put("requestedPermissions", JSONArray(permissions))
