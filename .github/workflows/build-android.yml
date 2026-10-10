@@ -42,6 +42,16 @@ jobs:
       - name: Lint Play flavor
         working-directory: android
         run: gradle :app:lintPlayDebug --stacktrace
+      - name: Upload lint diagnostics
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: scouttrace-lint-diagnostics
+          path: |
+            android/app/build/reports/lint-results-*.html
+            android/app/build/reports/lint-results-*.xml
+            android/app/build/intermediates/lint_intermediate_text_report/**
+          if-no-files-found: warn
       - name: Build installable debug APK
         working-directory: android
         run: gradle :app:assemblePlayDebug --stacktrace
