@@ -123,8 +123,8 @@ class DeviceSecurityScanner(private val context: Context) {
 
     private fun installedPackages():List<PackageInfo> = if(Build.VERSION.SDK_INT>=33) pm.getInstalledPackages(PackageManager.PackageInfoFlags.of(PackageManager.GET_PERMISSIONS.toLong())) else @Suppress("DEPRECATION") pm.getInstalledPackages(PackageManager.GET_PERMISSIONS)
     private fun installerOf(pkg:String):String?=try{if(Build.VERSION.SDK_INT>=30)pm.getInstallSourceInfo(pkg).installingPackageName else @Suppress("DEPRECATION") pm.getInstallerPackageName(pkg)}catch(_:Exception){null}
-    private fun enabledAccessibilityPackages():Set<String>=try{context.getSystemService(AccessibilityManager::class.java).getEnabledAccessibilityServiceList(AccessibilityServiceInfo.FEEDBACK_ALL_MASK).mapNotNull{it.resolveInfo?.serviceInfo?.packageName}.toSet()}catch(_:Exception){emptySet()}
-    private fun activeAdminPackages():Set<String>=try{context.getSystemService(DevicePolicyManager::class.java).activeAdmins?.map{it.packageName}?.toSet().orEmpty()}catch(_:Exception){emptySet()}
+    private fun enabledAccessibilityPackages():Set<String> = try{context.getSystemService(AccessibilityManager::class.java).getEnabledAccessibilityServiceList(AccessibilityServiceInfo.FEEDBACK_ALL_MASK).mapNotNull{it.resolveInfo?.serviceInfo?.packageName}.toSet()}catch(_:Exception){emptySet()}
+    private fun activeAdminPackages():Set<String> = try{context.getSystemService(DevicePolicyManager::class.java).activeAdmins?.map{it.packageName}?.toSet().orEmpty()}catch(_:Exception){emptySet()}
     private fun appLabel(pkg:PackageInfo):String=try{pm.getApplicationLabel(pkg.applicationInfo!!).toString()}catch(_:Exception){pkg.packageName}
     private fun rank(level:String)=when(level){"HIGH CAUTION"->0;"ELEVATED"->1;"REVIEW"->2;else->3}
 }
