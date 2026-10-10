@@ -35,7 +35,7 @@ class ApkInspector(private val context: Context) {
                 .put("sha256", digest.digest().joinToString("") { "%02x".format(it) })
                 .put("packageName", info.packageName)
                 .put("versionName", info.versionName ?: "unknown")
-                .put("versionCode", info.longVersionCode)
+                .put("versionCode", if (android.os.Build.VERSION.SDK_INT >= 28) info.longVersionCode else @Suppress("DEPRECATION") info.versionCode.toLong())
                 .put("minSdk", info.applicationInfo?.minSdkVersion ?: -1)
                 .put("targetSdk", info.applicationInfo?.targetSdkVersion ?: -1)
                 .put("signingCertificateSha256", JSONArray((if (android.os.Build.VERSION.SDK_INT >= 28) info.signingInfo?.apkContentsSigners?.toList() else null)?.map { cert ->
