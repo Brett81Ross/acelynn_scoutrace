@@ -181,7 +181,12 @@ class ScoutTraceBridge(private val context: Context) {
                 listOf(
                     item.optString("packageName"),
                     item.optString("level"),
-                    item.optInt("score").toString()
+                    item.optInt("score").toString(),
+                    item.optString("versionCode"),
+                    item.optString("installer"),
+                    item.optString("requestedPermissions"),
+                    item.optString("accessibilityEnabled"),
+                    item.optString("deviceAdminActive")
                 ).joinToString("|")
             }
         }.sorted().joinToString("\n")
