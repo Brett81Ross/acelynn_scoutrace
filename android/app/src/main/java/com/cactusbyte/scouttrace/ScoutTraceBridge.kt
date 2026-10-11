@@ -129,12 +129,35 @@ class ScoutTraceBridge(private val context: Context) {
                         .put("fromScore", before.second).put("toScore", after.second))
                 }
             }
+            val metadataChanges = JSONArray()
+            val oldApps = appMetadata(base.optJSONArray("appRisks"))
+            val newApps = appMetadata(current.optJSONArray("appRisks"))
+            (oldApps.keys intersect newApps.keys).sorted().forEach { pkg ->
+                val before = oldApps.getValue(pkg)
+                val after = newApps.getValue(pkg)
+                val fields = listOf("versionCode", "installer", "requestedPermissions", "accessibilityEnabled", "deviceAdminActive")
+                val changes = JSONArray()
+                fields.forEach { field ->
+                    if (before.opt(field)?.toString() != after.opt(field)?.toString()) changes.put(field)
+                }
+                if (changes.length() > 0) metadataChanges.put(JSONObject().put("packageName", pkg).put("fields", changes))
+            }
             JSONObject().put("exists", true).put("savedAt", prefs.getLong("baselineAt", 0))
                 .put("newApps", JSONArray((nowPkgs - basePkgs).sorted()))
                 .put("removedApps", JSONArray((basePkgs - nowPkgs).sorted()))
                 .put("riskChanges", changed)
+                .put("metadataChanges", metadataChanges)
                 .put("levelChanged", base.optString("level") != current.optString("level"))
         } catch (_: Exception) { JSONObject().put("exists", false) }
+    }
+
+    private fun appMetadata(a: JSONArray?): Map<String, JSONObject> {
+        if (a == null) return emptyMap()
+        return (0 until a.length()).mapNotNull { i ->
+            val item = a.optJSONObject(i) ?: return@mapNotNull null
+            val pkg = item.optString("packageName").takeIf(String::isNotBlank) ?: return@mapNotNull null
+            pkg to item
+        }.toMap()
     }
 
     private fun packageSet(a: JSONArray?): Set<String> {
