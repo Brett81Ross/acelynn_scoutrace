@@ -14,6 +14,8 @@ object InvestigationNarrative {
                 .put("title", item.optString("title", "Finding"))
                 .put("detail", item.optString("detail", "Review this observation.")))
         }
+        val baseline = result.optJSONObject("baseline") ?: JSONObject()
+        val changes = baseline.optJSONObject("narrative") ?: JSONObject()
         val level = result.optString("level", "CLEAR")
         val headline = when (level) {
             "HIGH CAUTION" -> "Correlated security indicators need attention"
@@ -25,6 +27,9 @@ object InvestigationNarrative {
             .put("headline", headline)
             .put("status", level)
             .put("priorities", top)
+            .put("securityDiff", changes.optString("headline", "No comparison available"))
+            .put("securityDiffDetail", changes.optString("detail", ""))
+            .put("recommendedAction", if (top.length() > 0) "Review the highest-priority finding and verify whether its permissions and special access are expected." else "Save a trusted baseline and review future changes.")
             .put("priorityCount", top.length())
             .put("residualRisk", "ScoutTrace cannot prove a device is malware-free. Android may limit package visibility and some security state is not exposed to third-party apps.")
     }
