@@ -73,7 +73,7 @@ class DeviceSecurityScanner(private val context: Context) {
                 score>=1->"REVIEW"
                 else->"CLEAR"
             }
-            appRisks.put(JSONObject().put("name",appLabel(pkg)).put("packageName",pkg.packageName).put("level",level).put("score",score).put("installer",installer?:"unknown").put("reasons",JSONArray(reasons)).put("evidence",evidence))
+            appRisks.put(JSONObject().put("name",appLabel(pkg)).put("packageName",pkg.packageName).put("level",level).put("score",score).put("installer",installer?:"unknown").put("versionCode",if(Build.VERSION.SDK_INT>=28)pkg.longVersionCode else @Suppress("DEPRECATION") pkg.versionCode.toLong()).put("requestedPermissions",JSONArray(requested.sorted())).put("accessibilityEnabled",enabledA11y).put("deviceAdminActive",admin).put("reasons",JSONArray(reasons)).put("evidence",evidence))
             if(level!="CLEAR") findings+=Finding(level,appLabel(pkg),reasons.joinToString(" • "),pkg.packageName)
         }
 
