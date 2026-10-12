@@ -10,10 +10,13 @@ import java.io.FileOutputStream
 import java.security.MessageDigest
 
 class ApkInspector(private val context: Context) {
+    private val maxApkBytes = 256L * 1024L * 1024L
     fun inspect(uri: Uri): JSONObject {
         val temp = File.createTempFile("scouttrace_", ".apk", context.cacheDir)
         try {
+            require(uri.scheme == "content") { "Only user-selected documents can be inspected." }
             val digest = MessageDigest.getInstance("SHA-256")
+            var totalBytes = 0L
             context.contentResolver.openInputStream(uri).use { input ->
                 requireNotNull(input)
                 FileOutputStream(temp).use { output ->
@@ -21,6 +24,8 @@ class ApkInspector(private val context: Context) {
                     while (true) {
                         val count = input.read(buffer)
                         if (count <= 0) break
+                        totalBytes += count
+                        require(totalBytes <= maxApkBytes) { "APK exceeds the 256 MB inspection limit." }
                         digest.update(buffer, 0, count)
                         output.write(buffer, 0, count)
                     }
