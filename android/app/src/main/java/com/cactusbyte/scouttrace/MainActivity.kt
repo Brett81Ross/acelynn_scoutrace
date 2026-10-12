@@ -45,6 +45,10 @@ class MainActivity : Activity() {
                 }
                 return true
             }
+            override fun onReceivedSslError(view: WebView, handler: android.webkit.SslErrorHandler, error: android.net.http.SslError) {
+                handler.cancel()
+                android.widget.Toast.makeText(this@MainActivity, "ScoutTrace blocked a connection with an invalid security certificate.", android.widget.Toast.LENGTH_LONG).show()
+            }
             override fun onPageFinished(view: WebView, url: String) {
                 super.onPageFinished(view, url)
                 if (android.net.Uri.parse(url).host == trustedHost && android.net.Uri.parse(url).scheme == "https") injectPhoneSecuritySweep()
