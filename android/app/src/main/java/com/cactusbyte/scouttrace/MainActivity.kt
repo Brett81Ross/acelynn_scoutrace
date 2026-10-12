@@ -363,13 +363,15 @@ class MainActivity : Activity() {
           const launcher=document.createElement('section');
           launcher.className='scouttrace-launcher';
           launcher.setAttribute('aria-label','ScoutTrace quick actions');
-          launcher.innerHTML='<div class="scouttrace-launcher-title"><strong>YOUR SECURITY INVESTIGATOR</strong><span>Real evidence. Clear next steps.</span></div><button type="button" class="scouttrace-run">▶ Run Investigation</button><div class="scouttrace-shortcuts"><button type="button" data-tool="scan">Investigation</button><button type="button" data-tool="timeline">Security Diff</button><button type="button" data-tool="privacy">Privacy</button><button type="button" data-tool="apk">Inspect APK</button></div>';
+          launcher.innerHTML='<div class="scouttrace-launcher-title"><strong>YOUR SECURITY INVESTIGATOR</strong><span>Real evidence. Clear next steps.</span></div><button type="button" class="scouttrace-run">▶ Run Investigation</button><div class="scouttrace-shortcuts"><button type="button" data-tool="scan">Investigation</button><button type="button" data-tool="timeline">Security Diff</button><button type="button" data-tool="privacy">Privacy</button><button type="button" data-tool="apk">Inspect APK</button><button type="button" data-tool="scam">Scam Check</button><button type="button" data-tool="family">Family Help</button></div>';
           const launch=()=>card.click();
           launcher.querySelector('.scouttrace-run').onclick=launch;
           launcher.querySelector('[data-tool="scan"]').onclick=launch;
           launcher.querySelector('[data-tool="timeline"]').onclick=()=>{launch();const run=document.getElementById('nativePhoneScan');if(run)run.click();};
           launcher.querySelector('[data-tool="privacy"]').onclick=()=>{launch();document.getElementById('privacyInfo')?.click();};
           launcher.querySelector('[data-tool="apk"]').onclick=()=>{launch();document.getElementById('apkInspect')?.click();};
+          launcher.querySelector('[data-tool="scam"]').onclick=()=>{launch();document.getElementById('scamOpinion')?.click();};
+          launcher.querySelector('[data-tool="family"]').onclick=()=>{launch();document.getElementById('familyAssist')?.click();};
           grid.parentNode?.insertBefore(launcher,grid);
           const nav=document.createElement('nav');
           nav.className='scouttrace-bottom-nav';
