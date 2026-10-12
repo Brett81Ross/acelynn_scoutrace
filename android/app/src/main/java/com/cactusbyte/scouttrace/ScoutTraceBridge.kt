@@ -69,12 +69,13 @@ class ScoutTraceBridge(private val context: Context) {
         return true
     }
 
-    fun exportSecurityReport(): String {
+    fun exportSecurityReport(redacted: Boolean = false): String {
         val r = DeviceSecurityScanner(context).scan()
         val counts = r.optJSONObject("counts") ?: JSONObject()
         val findings = r.optJSONArray("findings") ?: JSONArray()
         val out = StringBuilder()
         out.append("Acelynn's ScoutTrace Security Report\n")
+        out.append(if (redacted) "Sharing mode: redacted\n" else "Sharing mode: full local report\n")
         out.append("Status: ").append(r.optString("level")).append("\n")
         out.append("Platform: ").append(r.optString("platform")).append("\n")
         out.append("Security patch: ").append(r.optString("securityPatch")).append("\n")
@@ -84,15 +85,15 @@ class ScoutTraceBridge(private val context: Context) {
         for (i in 0 until findings.length()) {
             val item = findings.optJSONObject(i) ?: continue
             out.append("[").append(item.optString("level")).append("] ")
-                .append(item.optString("title")).append(": ")
-                .append(item.optString("detail")).append("\n")
+                .append(if (redacted) "App indicator " + (i + 1) else item.optString("title")).append(": ")
+                .append(if (redacted) "Review this indicator locally in ScoutTrace; app identity and evidence withheld from shared report." else item.optString("detail")).append("\n")
         }
         out.append("\nScoutTrace reports observable security indicators; it does not certify a device malware-free.")
         return out.toString()
     }
 
     fun shareSecurityReport(): Boolean {
-        val text = exportSecurityReport()
+        val text = exportSecurityReport(redacted = true)
         val intent = Intent(Intent.ACTION_SEND).apply {
             type = "text/plain"
             putExtra(Intent.EXTRA_SUBJECT, "Acelynn's ScoutTrace Security Report")
