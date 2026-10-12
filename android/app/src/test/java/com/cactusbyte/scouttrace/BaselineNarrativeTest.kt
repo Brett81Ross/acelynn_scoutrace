@@ -22,6 +22,20 @@ class BaselineNarrativeTest {
         assertEquals(0, r.getInt("changeCount"))
     }
 
+    @Test fun metadataChangeAppearsInCountAndHeadline() {
+        val comparison = JSONObject().put("exists", true)
+            .put("newApps", JSONArray()).put("removedApps", JSONArray())
+            .put("riskChanges", JSONArray())
+            .put("metadataChanges", JSONArray().put(JSONObject()
+                .put("packageName", "com.example.app")
+                .put("fields", JSONArray().put("requestedPermissions"))))
+        val r = BaselineNarrative.summarize(comparison)
+        assertTrue(r.getBoolean("changed"))
+        assertEquals(1, r.getInt("changeCount"))
+        assertEquals(1, r.getInt("metadataChanges"))
+        assertTrue(r.getString("headline").contains("configuration"))
+    }
+
     @Test fun riskChangeIsPrioritizedInHeadline() {
         val comparison = JSONObject().put("exists", true)
             .put("newApps", JSONArray()).put("removedApps", JSONArray())
