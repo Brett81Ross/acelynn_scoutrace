@@ -135,7 +135,7 @@ class MainActivity : Activity() {
               const out=document.getElementById('nativePhoneResult'); out.hidden=false; out.innerHTML='<p class="muted">Running ScoutTrace…</p>';
               try{
                 const r=JSON.parse(window.ScoutTraceNative.runSecurityScan()),c=r.counts||{},fs=r.findings||[],b=r.baseline||{},pm=r.permissionMatrix||{},tl=r.timeline||[],disp=r.dispositions||{},cov=r.coverage||{},n=r.narrative||{};
-                const changes=b.exists?((b.newApps||[]).length+(b.removedApps||[]).length+(b.riskChanges||[]).length):0,bn=b.narrative||{};
+                const changes=b.exists?((b.newApps||[]).length+(b.removedApps||[]).length+(b.riskChanges||[]).length+(b.metadataChanges||[]).length):0,bn=b.narrative||{};
                 const permissionHtml=Object.entries(pm).map(([k,v])=>'<div class="hist"><strong>'+esc(k.toUpperCase())+'</strong><div class="muted">'+(v||[]).length+' app(s) request this permission</div></div>').join('');
                 const visibleFindings=fs.filter(f=>!(disp[f.packageName]==='IGNORE' && f.level!=='HIGH CAUTION'));
                 const suppressedCount=fs.length-visibleFindings.length;
