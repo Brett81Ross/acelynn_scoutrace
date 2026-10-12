@@ -22,5 +22,5 @@ No release claims should be made while the legacy interface remains registered.
 ## Outstanding verification
 - Test malicious iframes, wrong origins, invalid payloads, WebView feature absence, and stale navigation replies.
 - Test camera, APK picker, native settings, share sheet, encrypted baseline migration and timeline on device.
-- Exclude encrypted investigation preferences from Android Auto Backup because Keystore keys are not portable.
+- AndroidManifest.xml currently sets allowBackup=false; retain this until an explicit encrypted-data restore policy exists.
 - Treat remote PWA origin integrity as part of the native trusted computing base.
