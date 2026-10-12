@@ -17,9 +17,9 @@ Status: **validation branch only; no production deployment, merge, or Play publi
 6. Family Assistance: consent guidance and redacted share sheet. Confirm recipient is selected by user and app identities/finding descriptions are not in shared text.
 7. APK picker: cancel, non-APK, 256 MB+ file, malformed APK, normal APK, storage exhaustion, and content URI revoked during read; no remote upload.
 8. WebView: invalid TLS certificate blocked; HTTP subresources blocked; JS popups disabled; external navigation cannot use privileged bridge.
-9. Native bridge: forged iframe message, invalid origin, unknown method, invalid package name, invalid classification, oversized payload, excess args, duplicate ID, and shutdown race. No legacy JavascriptInterface.
+9. Native bridge: forged iframe message, invalid origin, unknown method, invalid package name, invalid classification, oversized payload, excess args, duplicate ID, excessive queued requests, and shutdown race. No legacy JavascriptInterface.
 10. Camera: permission denied, canceled, granted, backgrounded, and revoked mid-session. No camera access to external origins.
-11. Keystore: baseline persistence across app restart, legacy plaintext migration, corrupted ciphertext, lock-state change, and local history clearing. Verify Trust/Watch/Ignore dispositions are encrypted, survive restart, migrate legacy plaintext with successful write-before-delete, and do not silently reappear after Reset.
+11. Keystore: baseline persistence across app restart, legacy plaintext migration, corrupted ciphertext (must surface error, never replace silently), simulated write failure (must not report saved), lock-state change, and local history clearing. Verify Trust/Watch/Ignore dispositions are encrypted, survive restart, migrate legacy plaintext with successful write-before-delete, and do not silently reappear after Reset.
 12. Share reports: verify redaction in actual Android chooser preview, not merely the app UI.
 
 ## Release gate
