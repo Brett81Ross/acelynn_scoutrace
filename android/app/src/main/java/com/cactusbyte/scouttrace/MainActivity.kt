@@ -341,14 +341,20 @@ class MainActivity : Activity() {
                 out.innerHTML=quickSummary+priorityPanel+'<div class="status '+klass(r.level)+'">'+esc(r.level)+'</div><h3>'+esc(headline)+'</h3><div class="notice"><b>Coverage:</b> '+esc(cov.explanation||'Android may limit package visibility.')+'</div><div class="notice"><b>'+c.appsScanned+'</b> visible packages inspected • <b>'+c.findings+'</b> findings • <b>'+c.sideloaded+'</b> sideloaded indicators • <b>'+changes+'</b> baseline changes</div>'+(priority?'<div class="notice"><b>Priority:</b> '+esc(priority.title)+' — '+esc(priority.detail)+'</div>':'')+'<h3>Findings</h3>'+(suppressedCount?'<div class="muted">'+suppressedCount+' ignored lower-priority finding(s) hidden. Reset their classification to show them again.</div>':'')+findingHtml+'<h3>Permission Matrix</h3>'+permissionHtml+'<h3>Baseline</h3><div class="hist"><div class="muted">'+esc(bn.headline||(b.exists?'Baseline comparison ready':'No trusted baseline saved'))+' — '+esc(bn.detail||'')+'</div></div><h3>Security Diff</h3>'+diffHtml+'<h3>Security Timeline</h3><p class="muted">Entries are recorded at observation time; they do not establish when a change originally occurred. Recent observations appear first.</p>'+(tl.length?tl.slice(0,50).map(e=>'<div class="hist"><strong>'+esc(e.title)+'</strong><div class="muted">'+new Date(e.time).toLocaleString()+' • '+esc(e.detail)+'</div></div>').join(''):'<p class="muted">No security-state changes recorded yet. Timeline entries reflect observation time, not the exact time an Android permission or setting changed.</p>')+'<div class="acts"><button id="openA11y" class="btn">Accessibility Settings</button><button id="openSecurity" class="btn">Security Settings</button><button id="clearNativeHistory" class="btn">Clear Local Security Data</button></div>';
                 out.querySelector('#reviewPriority')?.addEventListener('click',()=>out.querySelector('.scouttrace-finding')?.scrollIntoView({block:'center',behavior:'smooth'}));
                 out.querySelectorAll('.appSettings').forEach(x=>x.onclick=()=>nativeCall('openAppSettings',x.dataset.pkg));
-                out.querySelectorAll('.trustApp').forEach(x=>x.onclick=()=>{nativeCall('setAppDisposition',x.dataset.pkg,'TRUSTED');x.textContent='Trusted ✓';});
-                out.querySelectorAll('.watchApp').forEach(x=>x.onclick=()=>{nativeCall('setAppDisposition',x.dataset.pkg,'WATCH');x.textContent='Watching ✓';});
-                out.querySelectorAll('.ignoreApp').forEach(x=>x.onclick=()=>{nativeCall('setAppDisposition',x.dataset.pkg,'IGNORE');x.textContent='Ignored ✓';});
-                out.querySelectorAll('.resetApp').forEach(x=>x.onclick=()=>{nativeCall('setAppDisposition',x.dataset.pkg,'DEFAULT');x.textContent='Reset ✓';});
+                const setClassification=async(button,state,label)=>{
+                  button.disabled=true;
+                  try{const ok=await nativeCall('setAppDisposition',button.dataset.pkg,state);if(ok!==true)throw new Error('Not saved');button.textContent=label+' ✓';}
+                  catch(e){alert('Classification could not be saved.');}
+                  finally{button.disabled=false;}
+                };
+                out.querySelectorAll('.trustApp').forEach(x=>x.onclick=()=>setClassification(x,'TRUSTED','Trusted'));
+                out.querySelectorAll('.watchApp').forEach(x=>x.onclick=()=>setClassification(x,'WATCH','Watching'));
+                out.querySelectorAll('.ignoreApp').forEach(x=>x.onclick=()=>setClassification(x,'IGNORE','Ignored'));
+                out.querySelectorAll('.resetApp').forEach(x=>x.onclick=()=>setClassification(x,'DEFAULT','Reset'));
                 out.querySelectorAll('.uninstallApp').forEach(x=>x.onclick=()=>nativeCall('requestUninstall',x.dataset.pkg));
                 document.getElementById('openA11y').onclick=()=>nativeCall('openAccessibilitySettings');
                 document.getElementById('openSecurity').onclick=()=>nativeCall('openSecuritySettings');
-                document.getElementById('clearNativeHistory').onclick=()=>{if(confirm('Clear ScoutTrace baseline and local security timeline?')){nativeCall('clearSecurityHistory');out.innerHTML='<div class="notice">Local ScoutTrace security data cleared.</div>';}}
+                document.getElementById('clearNativeHistory').onclick=async()=>{if(!confirm('Clear ScoutTrace baseline and local security timeline?'))return;try{const ok=await nativeCall('clearSecurityHistory');if(ok!==true)throw new Error('Not cleared');out.innerHTML='<div class="notice">Local ScoutTrace security data cleared.</div>';}catch(e){alert('Could not clear local security data.');}}
               }catch(e){out.innerHTML='<div class="status review">REVIEW</div><p class="muted">Native scan failed: '+esc(e.message)+'</p>';}
             };
           };
