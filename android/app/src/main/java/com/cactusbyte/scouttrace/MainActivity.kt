@@ -391,6 +391,13 @@ class MainActivity : Activity() {
           launcher.insertAdjacentElement('afterend',nav);
 
           grid.appendChild(card);
+          window.addEventListener('scouttrace-shared-text',event=>{
+            if(typeof event.detail!=='string')return;
+            launch();
+            document.getElementById('scamOpinion')?.click();
+            const field=document.getElementById('scouttraceScamText');
+            if(field){field.value=event.detail.slice(0,4000);field.focus();}
+          });
         })();
         """.trimIndent()
         webView.evaluateJavascript(js) { deliverSharedText() }
