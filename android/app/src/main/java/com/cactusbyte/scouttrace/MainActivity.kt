@@ -104,7 +104,9 @@ class MainActivity : Activity() {
                         response.put("ok", false).put("error", "Native operation unavailable")
                     }
                     runOnUiThread {
-                        if (!isFinishing && !isDestroyed) reply.postMessage(response.toString())
+                        val current = webView.url?.let(Uri::parse)
+                        if (!isFinishing && !isDestroyed && current?.scheme == "https" && current.host == trustedHost &&
+                            (current.port == -1 || current.port == 443)) reply.postMessage(response.toString())
                     }
                 }
             }
