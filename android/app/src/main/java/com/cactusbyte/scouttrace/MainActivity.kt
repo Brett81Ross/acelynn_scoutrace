@@ -30,6 +30,8 @@ class MainActivity : Activity() {
         WebView.setWebContentsDebuggingEnabled(false)
         webView.settings.apply {
             javaScriptEnabled = true
+            javaScriptCanOpenWindowsAutomatically = false
+            setSupportMultipleWindows(false)
             domStorageEnabled = true
             mixedContentMode = WebSettings.MIXED_CONTENT_NEVER_ALLOW
             allowFileAccess = false
