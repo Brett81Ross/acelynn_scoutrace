@@ -1,0 +1,32 @@
+# ScoutTrace — investigation UI and secure bridge device QA
+
+Status: **validation branch only; no production deployment, merge, or Play publication**.
+
+## Required devices and conditions
+- Android 8 (API 26) or later with updated Android System WebView; Android 14/15 if available.
+- Galaxy Fold narrow cover display and unfolded display; regular Android phone portrait and landscape.
+- Offline and unreliable-network startup, navigation to an external site, back navigation, rotation, and activity recreation.
+- Test with zero findings, one review finding, multiple findings, no saved baseline, saved baseline, and a baseline change.
+
+## Mandatory regression checks
+1. Run Complete ScoutTrace. Verify no synthetic malware verdict, confidence percentage, or invented scan coverage.
+2. Findings: severity ordering, next-step priority, evidence details, and Android settings intents; WATCH changes order, IGNORE hides only non-HIGH CAUTION findings.
+3. Security Diff: initial no-baseline state, saved baseline, version/permission change, package-visibility caveat, no false installation date.
+4. Timeline: observations sorted newest first, at most 50 retained, timestamp clearly described as *observation time*.
+5. Scam Second Opinion: locally inspect an urgency message, a payment request, a message with a link, and benign text. No text upload, no automatic link navigation, no declaration that a message is safe.
+6. Family Assistance: consent guidance and redacted share sheet. Confirm recipient is selected by user and app identities/finding descriptions are not in shared text.
+7. APK picker: cancel, non-APK, 256 MB+ file, malformed APK, normal APK, storage exhaustion, and content URI revoked during read; no remote upload.
+8. WebView: invalid TLS certificate blocked; HTTP subresources blocked; JS popups disabled; external navigation cannot use privileged bridge.
+9. Native bridge: forged iframe message, invalid origin, unknown method, invalid package name, invalid classification, oversized payload, excess args, duplicate ID, and shutdown race. No legacy JavascriptInterface.
+10. Camera: permission denied, canceled, granted, backgrounded, and revoked mid-session. No camera access to external origins.
+11. Keystore: baseline persistence across app restart, legacy plaintext migration, corrupted ciphertext, lock-state change, and local history clearing.
+12. Share reports: verify redaction in actual Android chooser preview, not merely the app UI.
+
+## Release gate
+CI compilation, unit tests, lint, APK/AAB and manifest checks are **necessary but not sufficient**. Device evidence (screenshots, Android version, test steps, results) and manual review of the ten-screen design contract are required. No device QA is claimed by this document.
+
+## Known remaining work
+- Native Android share-sheet ingestion for suspicious text/links is not implemented; manual paste is available.
+- Consent-based remote assistance is intentionally not offered; family assistance is guidance and user-initiated redacted sharing.
+- iOS companion parity is outside this Android validation batch.
+- Real-device rendering must confirm the approved ten-screen mockup; code-level UI additions alone do not establish pixel parity.
