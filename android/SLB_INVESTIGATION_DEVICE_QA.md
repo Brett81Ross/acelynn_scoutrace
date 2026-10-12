@@ -13,7 +13,7 @@ Status: **validation branch only; no production deployment, merge, or Play publi
 2. Findings: severity ordering, next-step priority, evidence details, and Android settings intents; WATCH changes order, IGNORE hides only non-HIGH CAUTION findings.
 3. Security Diff: initial no-baseline state, saved baseline, version/permission change, package-visibility caveat, no false installation date.
 4. Timeline: observations sorted newest first, at most 50 retained, timestamp clearly described as *observation time*.
-5. Scam Second Opinion: locally inspect an urgency message, a payment request, a message with a link, and benign text. No text upload, no automatic link navigation, no declaration that a message is safe.
+5. Scam Second Opinion: locally inspect an urgency message, a payment request, a message with a link, and benign text. Also share plain text from another Android app into ScoutTrace while cold and warm. Verify text appears in the editable checklist, no text upload or automatic link navigation, no declaration that a message is safe, and no unsupported attachment imports.
 6. Family Assistance: consent guidance and redacted share sheet. Confirm recipient is selected by user and app identities/finding descriptions are not in shared text.
 7. APK picker: cancel, non-APK, 256 MB+ file, malformed APK, normal APK, storage exhaustion, and content URI revoked during read; no remote upload.
 8. WebView: invalid TLS certificate blocked; HTTP subresources blocked; JS popups disabled; external navigation cannot use privileged bridge.
@@ -26,7 +26,7 @@ Status: **validation branch only; no production deployment, merge, or Play publi
 CI compilation, unit tests, lint, APK/AAB and manifest checks are **necessary but not sufficient**. Device evidence (screenshots, Android version, test steps, results) and manual review of the ten-screen design contract are required. No device QA is claimed by this document.
 
 ## Known remaining work
-- Native Android share-sheet ingestion for suspicious text/links is not implemented; manual paste is available.
+- Native Android text/plain share-sheet ingestion is implemented on the validation branch. Verify fresh launch and warm singleTop delivery, no attachments, no unintended submission, local-only review, and 4,000-character limit on physical devices.
 - Consent-based remote assistance is intentionally not offered; family assistance is guidance and user-initiated redacted sharing.
 - iOS companion parity is outside this Android validation batch.
 - Real-device rendering must confirm the approved ten-screen mockup; code-level UI additions alone do not establish pixel parity.
