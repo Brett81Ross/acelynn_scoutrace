@@ -105,7 +105,7 @@ class MainActivity : Activity() {
                     runOnUiThread {
                         if (!isFinishing && !isDestroyed) reply.postMessage(response.toString())
                     }
-                }.start()
+                }
             }
         }
         else {
