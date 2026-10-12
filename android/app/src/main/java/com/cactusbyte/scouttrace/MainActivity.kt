@@ -97,6 +97,15 @@ class MainActivity : Activity() {
             const theme=document.createElement('style');
             theme.id='scouttrace-design-lock';
             theme.textContent=`
+              .scouttrace-launcher{padding:20px;margin:14px 0 20px;background:#f8fafc;color:#0c2036;border:1px solid #dce5ee;border-radius:22px;box-shadow:0 10px 24px rgba(12,32,54,.08)}
+              .scouttrace-launcher-title{display:flex;flex-direction:column;gap:4px;margin-bottom:14px}
+              .scouttrace-launcher-title strong{font-size:1.02rem;letter-spacing:.03em;color:#10273f}
+              .scouttrace-launcher-title span{font-size:.85rem;color:#536b80}
+              .scouttrace-run{width:100%;min-height:50px;background:#0c2036;color:white;border:0;border-radius:12px;font-weight:750;font-size:1rem;cursor:pointer}
+              .scouttrace-shortcuts{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px;margin-top:12px}
+              .scouttrace-shortcuts button{min-height:44px;border:1px solid #dce5ee;border-radius:12px;background:white;color:#16324d;font-weight:650;cursor:pointer}
+              .scouttrace-run:focus-visible,.scouttrace-shortcuts button:focus-visible{outline:3px solid #3687ea;outline-offset:2px}
+              @media(min-width:650px){.scouttrace-shortcuts{grid-template-columns:repeat(4,minmax(0,1fr))}}
               .scouttrace-summary-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin:12px 0 18px}
               .scouttrace-metric{display:flex;flex-direction:column;gap:5px;padding:14px;border:1px solid rgba(111,153,201,.23);background:rgba(85,147,214,.08);border-radius:15px}
               .scouttrace-metric b{font-size:1.6rem;font-weight:800;font-variant-numeric:tabular-nums}
@@ -163,6 +172,17 @@ class MainActivity : Activity() {
               }catch(e){out.innerHTML='<div class="status review">REVIEW</div><p class="muted">Native scan failed: '+esc(e.message)+'</p>';}
             };
           };
+          const launcher=document.createElement('section');
+          launcher.className='scouttrace-launcher';
+          launcher.setAttribute('aria-label','ScoutTrace quick actions');
+          launcher.innerHTML='<div class="scouttrace-launcher-title"><strong>YOUR SECURITY INVESTIGATOR</strong><span>Real evidence. Clear next steps.</span></div><button type="button" class="scouttrace-run">▶ Run Investigation</button><div class="scouttrace-shortcuts"><button type="button" data-tool="scan">Investigation</button><button type="button" data-tool="timeline">Security Diff</button><button type="button" data-tool="privacy">Privacy</button><button type="button" data-tool="apk">Inspect APK</button></div>';
+          const launch=()=>card.click();
+          launcher.querySelector('.scouttrace-run').onclick=launch;
+          launcher.querySelector('[data-tool="scan"]').onclick=launch;
+          launcher.querySelector('[data-tool="timeline"]').onclick=()=>{launch();const run=document.getElementById('nativePhoneScan');if(run)run.click();};
+          launcher.querySelector('[data-tool="privacy"]').onclick=()=>{launch();document.getElementById('privacyInfo')?.click();};
+          launcher.querySelector('[data-tool="apk"]').onclick=()=>{launch();document.getElementById('apkInspect')?.click();};
+          grid.parentNode?.insertBefore(launcher,grid);
           grid.appendChild(card);
         })();
         """.trimIndent()
