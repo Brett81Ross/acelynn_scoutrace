@@ -97,6 +97,15 @@ class MainActivity : Activity() {
                     reply.postMessage(JSONObject().put("id", id).put("ok", false).put("error", "Too many arguments").toString())
                     return@addWebMessageListener
                 }
+                val expectedArgs = when (method) {
+                    "openAppSettings", "requestUninstall" -> 1
+                    "setAppDisposition" -> 2
+                    else -> 0
+                }
+                if ((args?.length() ?: 0) != expectedArgs) {
+                    reply.postMessage(JSONObject().put("id", id).put("ok", false).put("error", "Invalid argument count").toString())
+                    return@addWebMessageListener
+                }
                 val packageName = args?.optString(0) ?: ""
                 if (method in setOf("openAppSettings", "requestUninstall", "setAppDisposition") &&
                     !packageName.matches(Regex("[A-Za-z_][A-Za-z0-9_]*(\\.[A-Za-z_][A-Za-z0-9_]*)+"))) {
