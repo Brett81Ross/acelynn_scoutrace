@@ -24,7 +24,7 @@ class AppDispositionStore(context: Context) {
         }
         // Only remove plaintext after a successful encrypted write.
         secure.putString(key, migrated.toString())
-        legacy.edit().clear().commit()
+        check(legacy.edit().clear().commit()) { "Could not clear legacy plaintext app classifications" }
         return migrated
     }
 
