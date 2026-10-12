@@ -73,6 +73,13 @@ class MainActivity : Activity() {
                     ?: return@addWebMessageListener
                 val method = request.optString("method")
                 val args = request.optJSONArray("args")
+                val packageName = args?.optString(0) ?: ""
+                if (method in setOf("openAppSettings", "requestUninstall", "setAppDisposition") &&
+                    !packageName.matches(Regex("[A-Za-z_][A-Za-z0-9_]*(\\.[A-Za-z_][A-Za-z0-9_]*)+"))) {
+                    reply.postMessage(JSONObject().put("id", id).put("ok", false)
+                        .put("error", "Invalid package name").toString())
+                    return@addWebMessageListener
+                }
                 Thread {
                     val response = JSONObject().put("id", id)
                     try {
@@ -151,9 +158,10 @@ class MainActivity : Activity() {
           };
           const nativeCall=(method,...args)=>new Promise((resolve,reject)=>{
             const id='st'+(++nativeSequence);
-            nativePending.set(id,{resolve,reject});
+            const timeout=setTimeout(()=>{nativePending.delete(id);reject(new Error('Native operation timed out'));},60000);
+            nativePending.set(id,{resolve:v=>{clearTimeout(timeout);resolve(v);},reject:e=>{clearTimeout(timeout);reject(e);}});
             try{nativePort.postMessage(JSON.stringify({id,method,args}));}
-            catch(e){nativePending.delete(id);reject(e);}
+            catch(e){clearTimeout(timeout);nativePending.delete(id);reject(e);}
           });
           const grid=document.querySelector('.grid'); if(!grid) return;
           // Approved ScoutTrace ten-screen visual language: scoped, reversible styling.
