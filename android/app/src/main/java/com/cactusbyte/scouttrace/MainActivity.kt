@@ -429,7 +429,19 @@ class MainActivity : Activity() {
 
     override fun onRequestPermissionsResult(requestCode:Int,permissions:Array<out String>,grantResults:IntArray){
         super.onRequestPermissionsResult(requestCode,permissions,grantResults)
-        if(requestCode==201){val req=pendingPermissionRequest;pendingPermissionRequest=null;if(grantResults.firstOrNull()==PackageManager.PERMISSION_GRANTED)req?.grant(arrayOf(PermissionRequest.RESOURCE_VIDEO_CAPTURE))else req?.deny()}
+        if (requestCode == 201) {
+            val req = pendingPermissionRequest
+            pendingPermissionRequest = null
+            if (req != null) {
+                val current = webView.url?.let(Uri::parse)
+                val trusted = current?.scheme == "https" && current.host == trustedHost &&
+                    (current.port == -1 || current.port == 443)
+                if (grantResults.firstOrNull() == PackageManager.PERMISSION_GRANTED &&
+                    trusted && req.origin.scheme == "https" && req.origin.host == trustedHost) {
+                    req.grant(arrayOf(PermissionRequest.RESOURCE_VIDEO_CAPTURE))
+                } else req.deny()
+            }
+        }
     }
     override fun onDestroy(){nativeExecutor.shutdownNow();webView.destroy();super.onDestroy()}
 }
