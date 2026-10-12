@@ -186,7 +186,7 @@ class MainActivity : Activity() {
               .scouttrace-finding .acts{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
               .scouttrace-finding .acts button{min-height:42px;border-radius:10px}
               .scouttrace-finding .muted{line-height:1.55;overflow-wrap:anywhere}
-              .scouttrace-bottom-nav{position:sticky;bottom:0;z-index:10;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:3px;padding:8px 6px max(8px,env(safe-area-inset-bottom));background:#0b1c30;border:1px solid #24425d;border-radius:16px;margin:12px 0;box-shadow:0 8px 24px rgba(0,0,0,.2)}
+              .scouttrace-bottom-nav{position:sticky;bottom:0;z-index:10;display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:3px;padding:8px 6px max(8px,env(safe-area-inset-bottom));background:#0b1c30;border:1px solid #24425d;border-radius:16px;margin:12px 0;box-shadow:0 8px 24px rgba(0,0,0,.2)}
               .scouttrace-bottom-nav button{min-height:48px;padding:5px 2px;border:0;border-radius:10px;background:transparent;color:#c6d7e8;font-size:.78rem;font-weight:700;cursor:pointer}
               .scouttrace-bottom-nav button[aria-current="page"]{background:#23496e;color:#fff}
               .scouttrace-bottom-nav button:focus-visible{outline:3px solid #6cbcff;outline-offset:1px}
@@ -279,12 +279,13 @@ class MainActivity : Activity() {
           const nav=document.createElement('nav');
           nav.className='scouttrace-bottom-nav';
           nav.setAttribute('aria-label','ScoutTrace investigation navigation');
-          nav.innerHTML='<button type="button" data-view="home" aria-current="page">⌂ Home</button><button type="button" data-view="investigate">⌕ Investigate</button><button type="button" data-view="changes">⇄ Changes</button><button type="button" data-view="tools">⚙ Tools</button>';
+          nav.innerHTML='<button type="button" data-view="home" aria-current="page">⌂ Home</button><button type="button" data-view="investigate">⌕ Investigate</button><button type="button" data-view="changes">⇄ Changes</button><button type="button" data-view="timeline">◷ Timeline</button><button type="button" data-view="tools">⚙ Tools</button>';
           const select=view=>{
             nav.querySelectorAll('button').forEach(b=>{if(b.dataset.view===view)b.setAttribute('aria-current','page');else b.removeAttribute('aria-current');});
             if(view==='home'){document.getElementById('home')?.classList.add('active');document.getElementById('scan')?.classList.remove('active');}
             else if(view==='investigate'){launch();}
             else if(view==='changes'){launch();const result=document.getElementById('nativePhoneResult');const scrollToDiff=()=>{const heading=[...(result?.querySelectorAll('h3')||[])].find(h=>h.textContent?.trim()==='Security Diff');heading?.scrollIntoView({block:'start',behavior:'smooth'});};if(result?.querySelector('h3'))scrollToDiff();else{document.getElementById('nativePhoneScan')?.click();const observer=new MutationObserver(()=>{if([...(result?.querySelectorAll('h3')||[])].some(h=>h.textContent?.trim()==='Security Diff')){observer.disconnect();scrollToDiff();}});if(result)observer.observe(result,{childList:true,subtree:true});setTimeout(()=>observer.disconnect(),60000);}}
+            else if(view==='timeline'){launch();const result=document.getElementById('nativePhoneResult');const scroll=()=>[...(result?.querySelectorAll('h3')||[])].find(h=>h.textContent?.trim()==='Security Timeline')?.scrollIntoView({block:'start',behavior:'smooth'});if(result?.querySelector('h3'))scroll();else{document.getElementById('nativePhoneScan')?.click();const observer=new MutationObserver(()=>{if([...(result?.querySelectorAll('h3')||[])].some(h=>h.textContent?.trim()==='Security Timeline')){observer.disconnect();scroll();}});if(result)observer.observe(result,{childList:true,subtree:true});setTimeout(()=>observer.disconnect(),60000);}}
             else if(view==='tools'){launch();document.getElementById('privacyInfo')?.focus();}
           };
           nav.querySelectorAll('button').forEach(b=>b.onclick=()=>select(b.dataset.view));
