@@ -304,7 +304,7 @@ class MainActivity : Activity() {
                 if(/(?:urgent|immediately|act now|account (?:suspended|locked)|final warning|within 24 hours)/i.test(value))signs.push('Urgency or account-pressure language');
                 if(/(?:gift card|crypto(?:currency)?|bitcoin|wire transfer|send money)/i.test(value))signs.push('Payment or transfer request');
                 if(/(?:password|verification code|one.time code|otp|login credentials)/i.test(value))signs.push('Credential or verification-code request');
-                if(/https?:\\/\\/|www\\./i.test(value))signs.push('Link present: verify the destination independently');
+                if(/https?:\/\/|www\./i.test(value))signs.push('Link present: verify the destination independently');
                 const result=document.getElementById('scouttraceScamResult');
                 result.replaceChildren();
                 const p=document.createElement('p');p.textContent=signs.length?'Warning signs to verify: '+signs.join('; ')+'.':'No checklist patterns matched. That does not establish safety.';
