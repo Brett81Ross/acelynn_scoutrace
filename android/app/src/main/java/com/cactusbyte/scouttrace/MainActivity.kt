@@ -22,7 +22,11 @@ class MainActivity : Activity() {
     private val apkPickerCode = 301
     private var pendingSharedText: String? = null
     private val nativeBridge by lazy { ScoutTraceBridge(this) }
-    private val nativeExecutor = java.util.concurrent.Executors.newSingleThreadExecutor()
+    private val nativeExecutor = java.util.concurrent.ThreadPoolExecutor(
+        1, 1, 0L, java.util.concurrent.TimeUnit.MILLISECONDS,
+        java.util.concurrent.ArrayBlockingQueue<Runnable>(24),
+        java.util.concurrent.ThreadPoolExecutor.AbortPolicy()
+    )
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
