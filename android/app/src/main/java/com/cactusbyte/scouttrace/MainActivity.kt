@@ -55,9 +55,16 @@ class MainActivity : Activity() {
             }
         }
         webView.webChromeClient = object : WebChromeClient() {
+            override fun onPermissionRequestCanceled(request: PermissionRequest) {
+                if (pendingPermissionRequest === request) pendingPermissionRequest = null
+            }
             override fun onPermissionRequest(request: PermissionRequest) {
                 runOnUiThread {
-                    if (request.origin.scheme != "https" || request.origin.host != trustedHost) { request.deny(); return@runOnUiThread }
+                    if (request.origin.scheme != "https" || request.origin.host != trustedHost ||
+                        (request.origin.port != -1 && request.origin.port != 443) ||
+                        webView.url?.let { Uri.parse(it).scheme == "https" && Uri.parse(it).host == trustedHost } != true) {
+                        request.deny(); return@runOnUiThread
+                    }
                     if (request.resources.contains(PermissionRequest.RESOURCE_VIDEO_CAPTURE)) {
                         if (checkSelfPermission(Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED) request.grant(arrayOf(PermissionRequest.RESOURCE_VIDEO_CAPTURE))
                         else { pendingPermissionRequest = request; requestPermissions(arrayOf(Manifest.permission.CAMERA), 201) }
