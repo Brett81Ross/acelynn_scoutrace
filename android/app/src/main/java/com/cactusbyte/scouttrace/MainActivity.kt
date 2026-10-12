@@ -406,8 +406,7 @@ class MainActivity : Activity() {
     private fun acceptSharedText(incoming: Intent?) {
         if (incoming?.action != Intent.ACTION_SEND || incoming.type != "text/plain") return
         // Never read attachment URIs or grant arbitrary access from share intents.
-        val supplied = incoming.getCharSequenceExtra(Intent.EXTRA_TEXT)?.toString() ?: return
-        pendingSharedText = supplied.take(4000)
+        pendingSharedText = SharedTextReview.normalize(incoming.getCharSequenceExtra(Intent.EXTRA_TEXT))
     }
 
     private fun deliverSharedText() {
