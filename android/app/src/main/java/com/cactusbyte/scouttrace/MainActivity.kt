@@ -133,6 +133,7 @@ class MainActivity : Activity() {
         super.onActivityResult(requestCode, resultCode, data)
         if (requestCode != apkPickerCode || resultCode != RESULT_OK) return
         val uri: Uri = data?.data ?: return
+        if (uri.scheme != "content") return
         Thread {
             val result = try { ApkInspector(applicationContext).inspect(uri).toString() }
                 catch (e: Exception) { org.json.JSONObject().put("ok", false).put("error", e.message ?: "APK inspection failed").toString() }
