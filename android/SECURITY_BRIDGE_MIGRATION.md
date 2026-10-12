@@ -1,6 +1,6 @@
 # Native bridge migration gate (P0)
 
-Status: **NOT COMPLETE — RELEASE BLOCKED**. The Android wrapper currently registers `addJavascriptInterface(ScoutTraceBridge(...), "ScoutTraceNative")` in MainActivity. Even with top-level host navigation checks, Android's legacy JS interface is visible to embedded frames. Do not merge or ship this build until it is removed.
+Status: **IMPLEMENTED ON VALIDATION BRANCH; RELEASE BLOCKED PENDING DEVICE QA**. Legacy addJavascriptInterface registration is removed. AndroidX WebKit origin-restricted main-frame messaging and a method allowlist are implemented. No physical-device security verification has been completed.
 
 ## Completed immediate hardening
 - Removed exposed `inspectApkUri(uri)` JavaScript entry point; APK inspection is restricted to the Android user-driven document picker.
@@ -17,3 +17,10 @@ Status: **NOT COMPLETE — RELEASE BLOCKED**. The Android wrapper currently regi
 8. Confirm full CI, on-device tests, and owner approval before merge or deployment.
 
 No release claims should be made while the legacy interface remains registered.
+
+
+## Outstanding verification
+- Test malicious iframes, wrong origins, invalid payloads, WebView feature absence, and stale navigation replies.
+- Test camera, APK picker, native settings, share sheet, encrypted baseline migration and timeline on device.
+- Exclude encrypted investigation preferences from Android Auto Backup because Keystore keys are not portable.
+- Treat remote PWA origin integrity as part of the native trusted computing base.
