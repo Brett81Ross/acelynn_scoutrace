@@ -14,7 +14,7 @@ import javax.crypto.spec.GCMParameterSpec
 internal class SecureInvestigationStore(context: Context) {
     private val prefs = context.getSharedPreferences("scouttrace_security", Context.MODE_PRIVATE)
     private val alias = "scouttrace_investigation_aes_v1"
-    private val keys = setOf("baseline", "timeline", "lastFingerprint")
+    private val keys = setOf("baseline", "timeline", "lastFingerprint", "appDispositions")
     private fun key(): SecretKey {
         val store = KeyStore.getInstance("AndroidKeyStore").apply { load(null) }
         (store.getKey(alias, null) as? SecretKey)?.let { return it }
