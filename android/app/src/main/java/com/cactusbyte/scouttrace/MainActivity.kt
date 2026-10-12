@@ -294,7 +294,28 @@ class MainActivity : Activity() {
             document.getElementById('scanType').textContent='COMPLETE SCOUTTRACE';
             document.getElementById('scanTitle').textContent='Android security investigation';
             document.getElementById('scanDesc').textContent='Detect → correlate → explain → prioritize → remediate. Findings are evidence for review, not proof of malware.';
-            body.innerHTML='<div class="scouttrace-native-head"><div class="scouttrace-mark">⛨</div><div><strong>Your Security Investigator</strong><small>Detect · Correlate · Explain · Prioritize · Remediate</small></div></div><div class="panel"><div class="notice"><b>Native engine connected.</b> Analysis is local to this device.</div><div class="acts"><button id="nativePhoneScan" class="btn primary">Run Complete ScoutTrace</button><button id="saveBaseline" class="btn">Save Trusted Baseline</button><button id="privacyInfo" class="btn">Privacy</button><button id="exportReport" class="btn">Export Report</button><button id="apkInspect" class="btn">Inspect APK</button></div><pre id="apkResult" hidden style="white-space:pre-wrap;overflow-wrap:anywhere"></pre><div id="nativePhoneResult" class="result" hidden></div></div>';
+            body.innerHTML='<div class="scouttrace-native-head"><div class="scouttrace-mark">⛨</div><div><strong>Your Security Investigator</strong><small>Detect · Correlate · Explain · Prioritize · Remediate</small></div></div><div class="panel"><div class="notice"><b>Native engine connected.</b> Analysis is local to this device.</div><div class="acts"><button id="nativePhoneScan" class="btn primary">Run Complete ScoutTrace</button><button id="saveBaseline" class="btn">Save Trusted Baseline</button><button id="privacyInfo" class="btn">Privacy</button><button id="exportReport" class="btn">Export Report</button><button id="apkInspect" class="btn">Inspect APK</button><button id="scamOpinion" class="btn">Scam Second Opinion</button><button id="familyAssist" class="btn">Family Assistance</button></div><div id="scouttraceUtility" aria-live="polite"></div><pre id="apkResult" hidden style="white-space:pre-wrap;overflow-wrap:anywhere"></pre><div id="nativePhoneResult" class="result" hidden></div></div>';
+            document.getElementById('scamOpinion').onclick=()=>{
+              const target=document.getElementById('scouttraceUtility');
+              target.innerHTML='<section class="scouttrace-screen"><h3>Scam Second Opinion</h3><p>Paste a suspicious message or link. This is a local checklist, not a reputation lookup or definitive scam detector. Do not enter passwords, codes, or personal information.</p><textarea id="scouttraceScamText" maxlength="4000" aria-label="Suspicious message or link" placeholder="Paste text to review locally"></textarea><button type="button" id="scouttraceScamReview">Review warning signs</button><div id="scouttraceScamResult" role="status"></div></section>';
+              document.getElementById('scouttraceScamReview').onclick=()=>{
+                const value=document.getElementById('scouttraceScamText').value.slice(0,4000);
+                const signs=[];
+                if(/(?:urgent|immediately|act now|account (?:suspended|locked)|final warning|within 24 hours)/i.test(value))signs.push('Urgency or account-pressure language');
+                if(/(?:gift card|crypto(?:currency)?|bitcoin|wire transfer|send money)/i.test(value))signs.push('Payment or transfer request');
+                if(/(?:password|verification code|one.time code|otp|login credentials)/i.test(value))signs.push('Credential or verification-code request');
+                if(/https?:\\/\\/|www\\./i.test(value))signs.push('Link present: verify the destination independently');
+                const result=document.getElementById('scouttraceScamResult');
+                result.replaceChildren();
+                const p=document.createElement('p');p.textContent=signs.length?'Warning signs to verify: '+signs.join('; ')+'.':'No checklist patterns matched. That does not establish safety.';
+                const note=document.createElement('p');note.textContent='Do not use the supplied link to verify the claim. Contact the organization through an independently obtained official channel.';
+                result.append(p,note);
+              };
+            };
+            document.getElementById('familyAssist').onclick=()=>{
+              document.getElementById('scouttraceUtility').innerHTML='<section class="scouttrace-screen"><h3>Family Assistance</h3><p>Support another person only with their informed consent. ScoutTrace does not silently monitor, remotely access, or inspect another device.</p><p>Ask them to run their own investigation, review findings together, and choose whether to share a redacted report. Sharing opens Android’s system share sheet and requires a user action.</p><button type="button" id="scouttraceFamilyShare">Share redacted report…</button><p class="muted">The report hides app identities and finding details. Review the recipient before sending.</p></section>';
+              document.getElementById('scouttraceFamilyShare').onclick=async()=>{try{if(!await nativeCall('shareSecurityReport'))alert('Unable to open the Android share sheet.');}catch(e){alert('Report sharing unavailable.');}};
+            };
             document.getElementById('saveBaseline').onclick=async()=>{const r=JSON.parse(await nativeCall('saveSecurityBaseline'));alert(r.ok?'Trusted baseline saved on this device.':'Baseline could not be saved.');};
             document.getElementById('privacyInfo').onclick=async()=>{const p=JSON.parse(await nativeCall('privacySummary'));alert(p.statement);};
             document.getElementById('apkInspect').onclick=()=>nativeCall('openApkPicker');
