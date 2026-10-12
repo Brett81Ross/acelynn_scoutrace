@@ -4,7 +4,6 @@ import android.content.Context
 import android.content.Intent
 import android.net.Uri
 import android.provider.Settings
-import android.webkit.JavascriptInterface
 import org.json.JSONArray
 import org.json.JSONObject
 import java.security.MessageDigest
@@ -13,16 +12,16 @@ class ScoutTraceBridge(private val context: Context) {
     private val prefs = context.getSharedPreferences("scouttrace_security", Context.MODE_PRIVATE)
     private val secure = SecureInvestigationStore(context)
 
-    @JavascriptInterface fun openApkPicker(): Boolean {
+    fun openApkPicker(): Boolean {
         val activity = context as? MainActivity ?: return false
         activity.requestApkInspection()
         return true
     }
 
-    @JavascriptInterface fun isNativeSecurityAvailable(): Boolean = true
-    @JavascriptInterface fun getPlatformInfo(): String = "Android ${android.os.Build.VERSION.RELEASE} (API ${android.os.Build.VERSION.SDK_INT})"
+    fun isNativeSecurityAvailable(): Boolean = true
+    fun getPlatformInfo(): String = "Android ${android.os.Build.VERSION.RELEASE} (API ${android.os.Build.VERSION.SDK_INT})"
 
-    @JavascriptInterface fun runSecurityScan(): String {
+    fun runSecurityScan(): String {
         val result = DeviceSecurityScanner(context).scan()
         val fingerprint = fingerprint(result)
         val old = secure.getString("lastFingerprint", null)
@@ -37,7 +36,7 @@ class ScoutTraceBridge(private val context: Context) {
         return result.toString()
     }
 
-    @JavascriptInterface fun saveSecurityBaseline(): String {
+    fun saveSecurityBaseline(): String {
         val result = DeviceSecurityScanner(context).scan()
         secure.putString("baseline", result.toString())
         prefs.edit().putLong("baselineAt", System.currentTimeMillis()).apply()
@@ -45,31 +44,32 @@ class ScoutTraceBridge(private val context: Context) {
         return JSONObject().put("ok", true).put("savedAt", prefs.getLong("baselineAt", 0)).toString()
     }
 
-    @JavascriptInterface fun clearSecurityHistory(): Boolean {
+    fun clearSecurityHistory(): Boolean {
         secure.remove("timeline", "baseline", "lastFingerprint", "baselineAt")
+        prefs.edit().remove("baselineAt").apply()
         return true
     }
 
-    @JavascriptInterface fun openAppSettings(packageName: String): Boolean = launch(Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.parse("package:$packageName")))
+    fun openAppSettings(packageName: String): Boolean = launch(Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.parse("package:$packageName")))
 
-    @JavascriptInterface fun requestUninstall(packageName: String): Boolean = launch(Intent(Intent.ACTION_DELETE, Uri.parse("package:$packageName")))
+    fun requestUninstall(packageName: String): Boolean = launch(Intent(Intent.ACTION_DELETE, Uri.parse("package:$packageName")))
 
-    @JavascriptInterface fun openAccessibilitySettings(): Boolean = launch(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS))
+    fun openAccessibilitySettings(): Boolean = launch(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS))
 
-    @JavascriptInterface fun openSecuritySettings(): Boolean = launch(Intent(Settings.ACTION_SECURITY_SETTINGS))
+    fun openSecuritySettings(): Boolean = launch(Intent(Settings.ACTION_SECURITY_SETTINGS))
 
-    @JavascriptInterface fun setAppDisposition(packageName: String, state: String): Boolean =
+    fun setAppDisposition(packageName: String, state: String): Boolean =
         AppDispositionStore(context).set(packageName, state)
 
-    @JavascriptInterface fun getAppDispositions(): String =
+    fun getAppDispositions(): String =
         AppDispositionStore(context).all().toString()
 
-    @JavascriptInterface fun clearAppDispositions(): Boolean {
+    fun clearAppDispositions(): Boolean {
         AppDispositionStore(context).clear()
         return true
     }
 
-    @JavascriptInterface fun exportSecurityReport(): String {
+    fun exportSecurityReport(): String {
         val r = DeviceSecurityScanner(context).scan()
         val counts = r.optJSONObject("counts") ?: JSONObject()
         val findings = r.optJSONArray("findings") ?: JSONArray()
@@ -91,7 +91,7 @@ class ScoutTraceBridge(private val context: Context) {
         return out.toString()
     }
 
-    @JavascriptInterface fun shareSecurityReport(): Boolean {
+    fun shareSecurityReport(): Boolean {
         val text = exportSecurityReport()
         val intent = Intent(Intent.ACTION_SEND).apply {
             type = "text/plain"
@@ -101,7 +101,7 @@ class ScoutTraceBridge(private val context: Context) {
         return launch(Intent.createChooser(intent, "Share ScoutTrace report"))
     }
 
-    @JavascriptInterface fun privacySummary(): String = PrivacyCenter.summary().toString()
+    fun privacySummary(): String = PrivacyCenter.summary().toString()
 
     private fun launch(intent: Intent): Boolean = try {
         intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
