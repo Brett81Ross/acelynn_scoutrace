@@ -106,6 +106,11 @@ class MainActivity : Activity() {
                     reply.postMessage(JSONObject().put("id", id).put("ok", false).put("error", "Invalid argument count").toString())
                     return@addWebMessageListener
                 }
+                if (method == "setAppDisposition" &&
+                    args?.optString(1) !in setOf("TRUSTED", "WATCH", "IGNORE", "DEFAULT")) {
+                    reply.postMessage(JSONObject().put("id", id).put("ok", false).put("error", "Invalid classification").toString())
+                    return@addWebMessageListener
+                }
                 val packageName = args?.optString(0) ?: ""
                 if (method in setOf("openAppSettings", "requestUninstall", "setAppDisposition") &&
                     !packageName.matches(Regex("[A-Za-z_][A-Za-z0-9_]*(\\.[A-Za-z_][A-Za-z0-9_]*)+"))) {
