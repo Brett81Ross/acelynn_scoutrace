@@ -75,6 +75,10 @@ class MainActivity : Activity() {
                     ?: return@addWebMessageListener
                 val method = request.optString("method")
                 val args = request.optJSONArray("args")
+                if (args != null && args.length() > 2) {
+                    reply.postMessage(JSONObject().put("id", id).put("ok", false).put("error", "Too many arguments").toString())
+                    return@addWebMessageListener
+                }
                 val packageName = args?.optString(0) ?: ""
                 if (method in setOf("openAppSettings", "requestUninstall", "setAppDisposition") &&
                     !packageName.matches(Regex("[A-Za-z_][A-Za-z0-9_]*(\\.[A-Za-z_][A-Za-z0-9_]*)+"))) {
