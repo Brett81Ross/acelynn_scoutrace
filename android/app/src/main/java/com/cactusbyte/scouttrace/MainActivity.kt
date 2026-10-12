@@ -20,11 +20,13 @@ class MainActivity : Activity() {
     private var pendingPermissionRequest: PermissionRequest? = null
     private val trustedHost = "acelynn-scoutrace.vercel.app"
     private val apkPickerCode = 301
+    private var pendingSharedText: String? = null
     private val nativeBridge by lazy { ScoutTraceBridge(this) }
     private val nativeExecutor = java.util.concurrent.Executors.newSingleThreadExecutor()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        acceptSharedText(intent)
         webView = WebView(this)
         setContentView(webView)
         WebView.setWebContentsDebuggingEnabled(false)
@@ -391,7 +393,32 @@ class MainActivity : Activity() {
           grid.appendChild(card);
         })();
         """.trimIndent()
-        webView.evaluateJavascript(js, null)
+        webView.evaluateJavascript(js) { deliverSharedText() }
+    }
+
+    private fun acceptSharedText(incoming: Intent?) {
+        if (incoming?.action != Intent.ACTION_SEND || incoming.type != "text/plain") return
+        // Never read attachment URIs or grant arbitrary access from share intents.
+        val supplied = incoming.getCharSequenceExtra(Intent.EXTRA_TEXT)?.toString() ?: return
+        pendingSharedText = supplied.take(4000)
+    }
+
+    private fun deliverSharedText() {
+        val current = webView.url?.let(Uri::parse)
+        if (current?.scheme != "https" || current.host != trustedHost ||
+            (current.port != -1 && current.port != 443)) return
+        val text = pendingSharedText ?: return
+        val literal = JSONObject.quote(text)
+        webView.evaluateJavascript(
+            "window.dispatchEvent(new CustomEvent('scouttrace-shared-text',{detail:" + literal + "}));"
+        ) { pendingSharedText = null }
+    }
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+        acceptSharedText(intent)
+        deliverSharedText()
     }
 
     override fun onRequestPermissionsResult(requestCode:Int,permissions:Array<out String>,grantResults:IntArray){
