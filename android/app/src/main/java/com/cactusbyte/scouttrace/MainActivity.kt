@@ -21,6 +21,7 @@ class MainActivity : Activity() {
     private val trustedHost = "acelynn-scoutrace.vercel.app"
     private val apkPickerCode = 301
     private val nativeBridge by lazy { ScoutTraceBridge(this) }
+    private val nativeExecutor = java.util.concurrent.Executors.newSingleThreadExecutor()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -80,7 +81,7 @@ class MainActivity : Activity() {
                         .put("error", "Invalid package name").toString())
                     return@addWebMessageListener
                 }
-                Thread {
+                nativeExecutor.execute {
                     val response = JSONObject().put("id", id)
                     try {
                         val value: Any = when (method) {
@@ -106,6 +107,10 @@ class MainActivity : Activity() {
                     }
                 }.start()
             }
+        }
+        else {
+            android.widget.Toast.makeText(this, "ScoutTrace requires an updated Android System WebView for secure investigations.", android.widget.Toast.LENGTH_LONG).show()
+            webView.settings.javaScriptEnabled = false
         }
         webView.loadUrl("https://acelynn-scoutrace.vercel.app/")
     }
@@ -292,5 +297,5 @@ class MainActivity : Activity() {
         super.onRequestPermissionsResult(requestCode,permissions,grantResults)
         if(requestCode==201){val req=pendingPermissionRequest;pendingPermissionRequest=null;if(grantResults.firstOrNull()==PackageManager.PERMISSION_GRANTED)req?.grant(arrayOf(PermissionRequest.RESOURCE_VIDEO_CAPTURE))else req?.deny()}
     }
-    override fun onDestroy(){webView.destroy();super.onDestroy()}
+    override fun onDestroy(){nativeExecutor.shutdownNow();webView.destroy();super.onDestroy()}
 }
