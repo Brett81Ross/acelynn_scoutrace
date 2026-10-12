@@ -100,7 +100,8 @@ class MainActivity : Activity() {
                 val args = request.optJSONArray("args")
                 val allowedMethods = setOf("runSecurityScan", "saveSecurityBaseline", "privacySummary",
                     "openApkPicker", "shareSecurityReport", "openAppSettings", "requestUninstall",
-                    "setAppDisposition", "openAccessibilitySettings", "openSecuritySettings", "clearSecurityHistory")
+                    "setAppDisposition", "openAccessibilitySettings", "openSecuritySettings", "clearSecurityHistory",
+                    "clearAppDispositions")
                 if (method !in allowedMethods) {
                     reply.postMessage(JSONObject().put("id", id).put("ok", false).put("error", "Unsupported native operation").toString())
                     return@addWebMessageListener
@@ -146,6 +147,7 @@ class MainActivity : Activity() {
                             "openAccessibilitySettings" -> nativeBridge.openAccessibilitySettings()
                             "openSecuritySettings" -> nativeBridge.openSecuritySettings()
                             "clearSecurityHistory" -> nativeBridge.clearSecurityHistory()
+                            "clearAppDispositions" -> nativeBridge.clearAppDispositions()
                             else -> throw IllegalArgumentException("Unsupported native operation")
                         }
                         response.put("ok", true).put("value", value)
