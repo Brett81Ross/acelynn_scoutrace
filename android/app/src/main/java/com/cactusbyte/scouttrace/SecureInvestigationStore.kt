@@ -34,7 +34,9 @@ internal class SecureInvestigationStore(context: Context) {
             val cipher = Cipher.getInstance("AES/GCM/NoPadding")
             cipher.init(Cipher.DECRYPT_MODE, key(), GCMParameterSpec(128, bytes.copyOfRange(0, 12)))
             String(cipher.doFinal(bytes.copyOfRange(12, bytes.size)), Charsets.UTF_8)
-        } catch (_: Exception) { fallback }
+        } catch (e: Exception) {
+            throw IllegalStateException("Encrypted investigation data is unreadable; refusing to replace it", e)
+        }
         // Legacy plaintext is read only to migrate immediately into encrypted storage.
         putString(name, raw)
         return raw
