@@ -97,6 +97,10 @@ class MainActivity : Activity() {
             const theme=document.createElement('style');
             theme.id='scouttrace-design-lock';
             theme.textContent=`
+              .scouttrace-bottom-nav{position:sticky;bottom:0;z-index:10;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:3px;padding:8px 6px max(8px,env(safe-area-inset-bottom));background:#0b1c30;border:1px solid #24425d;border-radius:16px;margin:12px 0;box-shadow:0 8px 24px rgba(0,0,0,.2)}
+              .scouttrace-bottom-nav button{min-height:48px;padding:5px 2px;border:0;border-radius:10px;background:transparent;color:#c6d7e8;font-size:.78rem;font-weight:700;cursor:pointer}
+              .scouttrace-bottom-nav button[aria-current="page"]{background:#23496e;color:#fff}
+              .scouttrace-bottom-nav button:focus-visible{outline:3px solid #6cbcff;outline-offset:1px}
               .scouttrace-launcher{padding:20px;margin:14px 0 20px;background:#f8fafc;color:#0c2036;border:1px solid #dce5ee;border-radius:22px;box-shadow:0 10px 24px rgba(12,32,54,.08)}
               .scouttrace-launcher-title{display:flex;flex-direction:column;gap:4px;margin-bottom:14px}
               .scouttrace-launcher-title strong{font-size:1.02rem;letter-spacing:.03em;color:#10273f}
@@ -183,6 +187,20 @@ class MainActivity : Activity() {
           launcher.querySelector('[data-tool="privacy"]').onclick=()=>{launch();document.getElementById('privacyInfo')?.click();};
           launcher.querySelector('[data-tool="apk"]').onclick=()=>{launch();document.getElementById('apkInspect')?.click();};
           grid.parentNode?.insertBefore(launcher,grid);
+          const nav=document.createElement('nav');
+          nav.className='scouttrace-bottom-nav';
+          nav.setAttribute('aria-label','ScoutTrace investigation navigation');
+          nav.innerHTML='<button type="button" data-view="home" aria-current="page">⌂ Home</button><button type="button" data-view="investigate">⌕ Investigate</button><button type="button" data-view="changes">⇄ Changes</button><button type="button" data-view="tools">⚙ Tools</button>';
+          const select=view=>{
+            nav.querySelectorAll('button').forEach(b=>{if(b.dataset.view===view)b.setAttribute('aria-current','page');else b.removeAttribute('aria-current');});
+            if(view==='home'){document.getElementById('home')?.classList.add('active');document.getElementById('scan')?.classList.remove('active');}
+            else if(view==='investigate'){launch();}
+            else if(view==='changes'){launch();document.getElementById('nativePhoneScan')?.click();document.getElementById('nativePhoneResult')?.querySelector('h3:nth-of-type(3)')?.scrollIntoView({block:'start',behavior:'smooth'});}
+            else if(view==='tools'){launch();document.getElementById('privacyInfo')?.focus();}
+          };
+          nav.querySelectorAll('button').forEach(b=>b.onclick=()=>select(b.dataset.view));
+          launcher.insertAdjacentElement('afterend',nav);
+
           grid.appendChild(card);
         })();
         """.trimIndent()
