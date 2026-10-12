@@ -51,6 +51,14 @@ class MainActivity : Activity() {
                 handler.cancel()
                 android.widget.Toast.makeText(this@MainActivity, "ScoutTrace blocked a connection with an invalid security certificate.", android.widget.Toast.LENGTH_LONG).show()
             }
+            override fun shouldInterceptRequest(view: WebView, request: android.webkit.WebResourceRequest): android.webkit.WebResourceResponse? {
+                val uri = request.url
+                if (uri.scheme != "https") {
+                    return android.webkit.WebResourceResponse("text/plain", "UTF-8",
+                        java.io.ByteArrayInputStream(ByteArray(0)))
+                }
+                return super.shouldInterceptRequest(view, request)
+            }
             override fun onPageFinished(view: WebView, url: String) {
                 super.onPageFinished(view, url)
                 if (android.net.Uri.parse(url).host == trustedHost && android.net.Uri.parse(url).scheme == "https") injectPhoneSecuritySweep()
