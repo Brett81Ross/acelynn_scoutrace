@@ -11,12 +11,16 @@ import android.webkit.WebChromeClient
 import android.webkit.WebSettings
 import android.webkit.WebView
 import android.webkit.WebViewClient
+import androidx.webkit.WebViewCompat
+import androidx.webkit.WebViewFeature
+import org.json.JSONObject
 
 class MainActivity : Activity() {
     private lateinit var webView: WebView
     private var pendingPermissionRequest: PermissionRequest? = null
     private val trustedHost = "acelynn-scoutrace.vercel.app"
     private val apkPickerCode = 301
+    private val nativeBridge by lazy { ScoutTraceBridge(this) }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -56,7 +60,46 @@ class MainActivity : Activity() {
                 }
             }
         }
-        webView.addJavascriptInterface(ScoutTraceBridge(this), "ScoutTraceNative")
+        if (WebViewFeature.isFeatureSupported(WebViewFeature.WEB_MESSAGE_LISTENER)) {
+            WebViewCompat.addWebMessageListener(webView, "ScoutTraceNative",
+                setOf("https://acelynn-scoutrace.vercel.app")
+            ) { _, message, origin, isMainFrame, reply ->
+                if (!isMainFrame || origin.scheme != "https" || origin.host != trustedHost ||
+                    (origin.port != -1 && origin.port != 443)) return@addWebMessageListener
+                val raw = message.data ?: return@addWebMessageListener
+                if (raw.length > 8192) return@addWebMessageListener
+                val request = try { JSONObject(raw) } catch (_: Exception) { return@addWebMessageListener }
+                val id = request.optString("id").takeIf { it.matches(Regex("[A-Za-z0-9_-]{1,64}")) }
+                    ?: return@addWebMessageListener
+                val method = request.optString("method")
+                val args = request.optJSONArray("args")
+                Thread {
+                    val response = JSONObject().put("id", id)
+                    try {
+                        val value: Any = when (method) {
+                            "runSecurityScan" -> nativeBridge.runSecurityScan()
+                            "saveSecurityBaseline" -> nativeBridge.saveSecurityBaseline()
+                            "privacySummary" -> nativeBridge.privacySummary()
+                            "openApkPicker" -> nativeBridge.openApkPicker()
+                            "shareSecurityReport" -> nativeBridge.shareSecurityReport()
+                            "openAppSettings" -> nativeBridge.openAppSettings(args?.optString(0) ?: "")
+                            "requestUninstall" -> nativeBridge.requestUninstall(args?.optString(0) ?: "")
+                            "setAppDisposition" -> nativeBridge.setAppDisposition(args?.optString(0) ?: "", args?.optString(1) ?: "")
+                            "openAccessibilitySettings" -> nativeBridge.openAccessibilitySettings()
+                            "openSecuritySettings" -> nativeBridge.openSecuritySettings()
+                            "clearSecurityHistory" -> nativeBridge.clearSecurityHistory()
+                            else -> throw IllegalArgumentException("Unsupported native operation")
+                        }
+                        response.put("ok", true).put("value", value)
+                    } catch (_: Exception) {
+                        response.put("ok", false).put("error", "Native operation unavailable")
+                    }
+                    runOnUiThread {
+                        if (!isFinishing && !isDestroyed) reply.postMessage(response.toString())
+                    }
+                }.start()
+            }
+        }
         webView.loadUrl("https://acelynn-scoutrace.vercel.app/")
     }
 
@@ -91,6 +134,27 @@ class MainActivity : Activity() {
         (() => {
           if (window.__scoutTracePhoneSweepInjected) return;
           window.__scoutTracePhoneSweepInjected = true;
+          const nativePending=new Map();
+          let nativeSequence=0;
+          const nativePort=window.ScoutTraceNative;
+          if(!nativePort || typeof nativePort.postMessage!=='function'){
+            console.warn('ScoutTrace secure native messaging unavailable');
+            return;
+          }
+          nativePort.onmessage=event=>{
+            try{
+              const msg=JSON.parse(event.data),p=nativePending.get(msg.id);
+              if(!p)return;
+              nativePending.delete(msg.id);
+              if(msg.ok)p.resolve(msg.value);else p.reject(new Error(msg.error||'Native request failed'));
+            }catch(e){console.warn('ScoutTrace native response rejected');}
+          };
+          const nativeCall=(method,...args)=>new Promise((resolve,reject)=>{
+            const id='st'+(++nativeSequence);
+            nativePending.set(id,{resolve,reject});
+            try{nativePort.postMessage(JSON.stringify({id,method,args}));}
+            catch(e){nativePending.delete(id);reject(e);}
+          });
           const grid=document.querySelector('.grid'); if(!grid) return;
           // Approved ScoutTrace ten-screen visual language: scoped, reversible styling.
           if(!document.getElementById('scouttrace-design-lock')) {
@@ -153,15 +217,15 @@ class MainActivity : Activity() {
             document.getElementById('scanTitle').textContent='Android security investigation';
             document.getElementById('scanDesc').textContent='Detect → correlate → explain → prioritize → remediate. Findings are evidence for review, not proof of malware.';
             body.innerHTML='<div class="scouttrace-native-head"><div class="scouttrace-mark">⛨</div><div><strong>Your Security Investigator</strong><small>Detect · Correlate · Explain · Prioritize · Remediate</small></div></div><div class="panel"><div class="notice"><b>Native engine connected.</b> Analysis is local to this device.</div><div class="acts"><button id="nativePhoneScan" class="btn primary">Run Complete ScoutTrace</button><button id="saveBaseline" class="btn">Save Trusted Baseline</button><button id="privacyInfo" class="btn">Privacy</button><button id="exportReport" class="btn">Export Report</button><button id="apkInspect" class="btn">Inspect APK</button></div><pre id="apkResult" hidden style="white-space:pre-wrap;overflow-wrap:anywhere"></pre><div id="nativePhoneResult" class="result" hidden></div></div>';
-            document.getElementById('saveBaseline').onclick=()=>{const r=JSON.parse(window.ScoutTraceNative.saveSecurityBaseline());alert(r.ok?'Trusted baseline saved on this device.':'Baseline could not be saved.');};
-            document.getElementById('privacyInfo').onclick=()=>{const p=JSON.parse(window.ScoutTraceNative.privacySummary());alert(p.statement);};
-            document.getElementById('apkInspect').onclick=()=>window.ScoutTraceNative.openApkPicker();
+            document.getElementById('saveBaseline').onclick=async()=>{const r=JSON.parse(await nativeCall('saveSecurityBaseline'));alert(r.ok?'Trusted baseline saved on this device.':'Baseline could not be saved.');};
+            document.getElementById('privacyInfo').onclick=async()=>{const p=JSON.parse(await nativeCall('privacySummary'));alert(p.statement);};
+            document.getElementById('apkInspect').onclick=()=>nativeCall('openApkPicker');
             window.addEventListener('scouttrace-apk-result',event=>{const out=document.getElementById('apkResult');if(!out)return;try{const result=JSON.parse(event.detail);out.hidden=false;out.textContent=result.ok?JSON.stringify(result,null,2):'APK inspection failed: '+result.error;}catch(err){out.hidden=false;out.textContent='Unable to display APK result.';}});
-            document.getElementById('exportReport').onclick=()=>{if(!window.ScoutTraceNative.shareSecurityReport())alert('Android share sheet could not be opened.');};
-            document.getElementById('nativePhoneScan').onclick=()=>{
+            document.getElementById('exportReport').onclick=async()=>{if(!await nativeCall('shareSecurityReport'))alert('Android share sheet could not be opened.');};
+            document.getElementById('nativePhoneScan').onclick=async()=>{
               const out=document.getElementById('nativePhoneResult'); out.hidden=false; out.innerHTML='<p class="muted">Running ScoutTrace…</p>';
               try{
-                const r=JSON.parse(window.ScoutTraceNative.runSecurityScan()),c=r.counts||{},fs=r.findings||[],b=r.baseline||{},pm=r.permissionMatrix||{},tl=r.timeline||[],disp=r.dispositions||{},cov=r.coverage||{},n=r.narrative||{};
+                const r=JSON.parse(await nativeCall('runSecurityScan')),c=r.counts||{},fs=r.findings||[],b=r.baseline||{},pm=r.permissionMatrix||{},tl=r.timeline||[],disp=r.dispositions||{},cov=r.coverage||{},n=r.narrative||{};
                 const changes=b.exists?((b.newApps||[]).length+(b.removedApps||[]).length+(b.riskChanges||[]).length+(b.metadataChanges||[]).length):0,bn=b.narrative||{};
                 const quickSummary='<div class="scouttrace-summary-grid"><div class="scouttrace-metric"><b>'+esc(c.appsScanned??0)+'</b><small>Visible apps</small></div><div class="scouttrace-metric"><b>'+esc(changes)+'</b><small>Baseline changes</small></div><div class="scouttrace-metric"><b>'+esc(c.findings??0)+'</b><small>Findings</small></div><div class="scouttrace-metric"><b>'+esc((n.priorities||[]).length)+'</b><small>Priorities</small></div></div>';
                 const diffItems=b.exists?[...(b.newApps||[]).map(x=>({title:'Newly visible app',detail:x})),...(b.removedApps||[]).map(x=>({title:'App no longer visible',detail:x})),...(b.riskChanges||[]).map(x=>({title:'Risk classification changed',detail:x.packageName+' · '+x.fromLevel+' → '+x.toLevel})),...(b.metadataChanges||[]).map(x=>({title:'App metadata changed',detail:x.packageName+' · '+(x.fields||[]).join(', ')}))]:[];
@@ -173,15 +237,15 @@ class MainActivity : Activity() {
                 const priority=visibleFindings[0],headline=n.headline||'ScoutTrace investigation complete';
                 const findingHtml=visibleFindings.length?visibleFindings.map(f=>'<div class="hist scouttrace-finding"><strong>'+esc(f.title||f.packageName)+'</strong><div class="status '+klass(f.level)+'">'+esc(f.level)+'</div><div class="muted">'+esc(f.detail)+'</div>'+(f.remediation?.nextStep?'<div class="muted"><b>Next:</b> '+esc(f.remediation.nextStep)+'</div>':'')+'<details class="scouttrace-detail"><summary>Finding details &amp; guidance</summary><p>'+esc(f.detail||'No further evidence supplied by this scan.')+'</p>'+(f.remediation?.nextStep?'<p><b>Recommended next step:</b> '+esc(f.remediation.nextStep)+'</p>':'<p>Review the available evidence before making changes.</p>')+'<p class="scouttrace-evidence"><b>Observed app:</b> '+esc(f.packageName||'Device-level indicator')+'</p><p class="muted">An indicator is not proof of malware. Android visibility and permissions may limit this finding.</p></details>'+(f.packageName?'<div class="acts"><button class="btn appSettings" data-pkg="'+esc(f.packageName)+'">Review App</button><button class="btn trustApp" data-pkg="'+esc(f.packageName)+'">Trust</button><button class="btn watchApp" data-pkg="'+esc(f.packageName)+'">Watch</button><button class="btn ignoreApp" data-pkg="'+esc(f.packageName)+'">Ignore</button><button class="btn resetApp" data-pkg="'+esc(f.packageName)+'">Reset</button><button class="btn uninstallApp" data-pkg="'+esc(f.packageName)+'">Uninstall…</button></div><div class="muted">Classification: '+esc(disp[f.packageName]||'DEFAULT')+'</div>':'')+'</div>').join(''):'<div class="notice"><b>No elevated app indicators found.</b></div>';
                 out.innerHTML=quickSummary+'<div class="status '+klass(r.level)+'">'+esc(r.level)+'</div><h3>'+esc(headline)+'</h3><div class="notice"><b>Coverage:</b> '+esc(cov.explanation||'Android may limit package visibility.')+'</div><div class="notice"><b>'+c.appsScanned+'</b> visible packages inspected • <b>'+c.findings+'</b> findings • <b>'+c.sideloaded+'</b> sideloaded indicators • <b>'+changes+'</b> baseline changes</div>'+(priority?'<div class="notice"><b>Priority:</b> '+esc(priority.title)+' — '+esc(priority.detail)+'</div>':'')+'<h3>Findings</h3>'+(suppressedCount?'<div class="muted">'+suppressedCount+' ignored lower-priority finding(s) hidden. Reset their classification to show them again.</div>':'')+findingHtml+'<h3>Permission Matrix</h3>'+permissionHtml+'<h3>Baseline</h3><div class="hist"><div class="muted">'+esc(bn.headline||(b.exists?'Baseline comparison ready':'No trusted baseline saved'))+' — '+esc(bn.detail||'')+'</div></div><h3>Security Diff</h3>'+diffHtml+'<h3>Security Timeline</h3>'+(tl.length?tl.slice(0,10).map(e=>'<div class="hist"><strong>'+esc(e.title)+'</strong><div class="muted">'+new Date(e.time).toLocaleString()+' • '+esc(e.detail)+'</div></div>').join(''):'<p class="muted">No security-state changes recorded yet.</p>')+'<div class="acts"><button id="openA11y" class="btn">Accessibility Settings</button><button id="openSecurity" class="btn">Security Settings</button><button id="clearNativeHistory" class="btn">Clear Local Security Data</button></div>';
-                out.querySelectorAll('.appSettings').forEach(x=>x.onclick=()=>window.ScoutTraceNative.openAppSettings(x.dataset.pkg));
-                out.querySelectorAll('.trustApp').forEach(x=>x.onclick=()=>{window.ScoutTraceNative.setAppDisposition(x.dataset.pkg,'TRUSTED');x.textContent='Trusted ✓';});
-                out.querySelectorAll('.watchApp').forEach(x=>x.onclick=()=>{window.ScoutTraceNative.setAppDisposition(x.dataset.pkg,'WATCH');x.textContent='Watching ✓';});
-                out.querySelectorAll('.ignoreApp').forEach(x=>x.onclick=()=>{window.ScoutTraceNative.setAppDisposition(x.dataset.pkg,'IGNORE');x.textContent='Ignored ✓';});
-                out.querySelectorAll('.resetApp').forEach(x=>x.onclick=()=>{window.ScoutTraceNative.setAppDisposition(x.dataset.pkg,'DEFAULT');x.textContent='Reset ✓';});
-                out.querySelectorAll('.uninstallApp').forEach(x=>x.onclick=()=>window.ScoutTraceNative.requestUninstall(x.dataset.pkg));
-                document.getElementById('openA11y').onclick=()=>window.ScoutTraceNative.openAccessibilitySettings();
-                document.getElementById('openSecurity').onclick=()=>window.ScoutTraceNative.openSecuritySettings();
-                document.getElementById('clearNativeHistory').onclick=()=>{if(confirm('Clear ScoutTrace baseline and local security timeline?')){window.ScoutTraceNative.clearSecurityHistory();out.innerHTML='<div class="notice">Local ScoutTrace security data cleared.</div>';}}
+                out.querySelectorAll('.appSettings').forEach(x=>x.onclick=()=>nativeCall('openAppSettings',x.dataset.pkg));
+                out.querySelectorAll('.trustApp').forEach(x=>x.onclick=()=>{nativeCall('setAppDisposition',x.dataset.pkg,'TRUSTED');x.textContent='Trusted ✓';});
+                out.querySelectorAll('.watchApp').forEach(x=>x.onclick=()=>{nativeCall('setAppDisposition',x.dataset.pkg,'WATCH');x.textContent='Watching ✓';});
+                out.querySelectorAll('.ignoreApp').forEach(x=>x.onclick=()=>{nativeCall('setAppDisposition',x.dataset.pkg,'IGNORE');x.textContent='Ignored ✓';});
+                out.querySelectorAll('.resetApp').forEach(x=>x.onclick=()=>{nativeCall('setAppDisposition',x.dataset.pkg,'DEFAULT');x.textContent='Reset ✓';});
+                out.querySelectorAll('.uninstallApp').forEach(x=>x.onclick=()=>nativeCall('requestUninstall',x.dataset.pkg));
+                document.getElementById('openA11y').onclick=()=>nativeCall('openAccessibilitySettings');
+                document.getElementById('openSecurity').onclick=()=>nativeCall('openSecuritySettings');
+                document.getElementById('clearNativeHistory').onclick=()=>{if(confirm('Clear ScoutTrace baseline and local security timeline?')){nativeCall('clearSecurityHistory');out.innerHTML='<div class="notice">Local ScoutTrace security data cleared.</div>';}}
               }catch(e){out.innerHTML='<div class="status review">REVIEW</div><p class="muted">Native scan failed: '+esc(e.message)+'</p>';}
             };
           };
@@ -220,5 +284,5 @@ class MainActivity : Activity() {
         super.onRequestPermissionsResult(requestCode,permissions,grantResults)
         if(requestCode==201){val req=pendingPermissionRequest;pendingPermissionRequest=null;if(grantResults.firstOrNull()==PackageManager.PERMISSION_GRANTED)req?.grant(arrayOf(PermissionRequest.RESOURCE_VIDEO_CAPTURE))else req?.deny()}
     }
-    override fun onDestroy(){webView.removeJavascriptInterface("ScoutTraceNative");webView.destroy();super.onDestroy()}
+    override fun onDestroy(){webView.destroy();super.onDestroy()}
 }
