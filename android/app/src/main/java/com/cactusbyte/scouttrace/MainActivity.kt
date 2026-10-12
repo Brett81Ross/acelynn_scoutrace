@@ -92,17 +92,40 @@ class MainActivity : Activity() {
           if (window.__scoutTracePhoneSweepInjected) return;
           window.__scoutTracePhoneSweepInjected = true;
           const grid=document.querySelector('.grid'); if(!grid) return;
+          // Approved ScoutTrace ten-screen visual language: scoped, reversible styling.
+          if(!document.getElementById('scouttrace-design-lock')) {
+            const theme=document.createElement('style');
+            theme.id='scouttrace-design-lock';
+            theme.textContent=`
+              .scouttrace-entry{position:relative;overflow:hidden;border:1px solid rgba(65,142,213,.35)!important;background:linear-gradient(140deg,#0c1b2d,#152c46)!important;color:#f4f8ff!important;border-radius:20px!important;box-shadow:0 12px 32px rgba(5,15,28,.25)!important}
+              .scouttrace-entry strong{font-weight:800;letter-spacing:.01em;color:#fff!important}
+              .scouttrace-entry span{color:#c6d7e8!important}
+              .scouttrace-entry .ico{background:rgba(47,134,242,.18)!important;color:#71b9ff!important;border:1px solid rgba(113,185,255,.4)!important}
+              .scouttrace-entry:focus-visible{outline:3px solid #61b8ff;outline-offset:3px}
+              .scouttrace-native-head{display:flex;align-items:center;gap:12px;margin:0 0 16px;padding:16px;border-radius:18px;background:linear-gradient(125deg,#0c1b2d,#173653);color:#fff}
+              .scouttrace-native-head .scouttrace-mark{display:grid;place-items:center;width:44px;height:44px;border-radius:14px;background:#23476b;font-size:25px}
+              .scouttrace-native-head strong{display:block;color:#fff;font-size:1.15rem}
+              .scouttrace-native-head small{display:block;color:#c3d9ed;line-height:1.5}
+              .scouttrace-native-head + .panel{border-radius:18px}
+              #nativePhoneResult .hist{border-radius:14px;overflow-wrap:anywhere}
+              #nativePhoneResult .status{font-weight:800;letter-spacing:.04em}
+              @media(max-width:380px){.scouttrace-native-head{padding:12px;gap:9px}.scouttrace-native-head strong{font-size:1rem}}
+              @media(min-width:700px){#nativePhoneResult{max-width:960px;margin:auto}}
+            `;
+            document.head.appendChild(theme);
+          }
           const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
           const klass=l=>l==='CLEAR'?'clear':l==='REVIEW'?'review':l==='ELEVATED'?'elevated':'high';
           const card=document.createElement('button'); card.className='card';
-          card.innerHTML='<div class="ico">⌾</div><strong>Complete ScoutTrace</strong><span>Native Android device sweep, baseline comparison, permissions and prioritized remediation.</span>';
+          card.classList.add('scouttrace-entry');
+          card.innerHTML='<div class="ico">⛨</div><strong>ScoutTrace Investigation</strong><span>Security Diff · Evidence · Priorities · Guided actions</span>';
           card.onclick=()=>{
             const home=document.getElementById('home'),scan=document.getElementById('scan'),body=document.getElementById('scanBody');
             if(!home||!scan||!body)return; home.classList.remove('active');scan.classList.add('active');
             document.getElementById('scanType').textContent='COMPLETE SCOUTTRACE';
             document.getElementById('scanTitle').textContent='Android security investigation';
             document.getElementById('scanDesc').textContent='Detect → correlate → explain → prioritize → remediate. Findings are evidence for review, not proof of malware.';
-            body.innerHTML='<div class="panel"><div class="notice"><b>Native engine connected.</b> Analysis is local to this device.</div><div class="acts"><button id="nativePhoneScan" class="btn primary">Run Complete ScoutTrace</button><button id="saveBaseline" class="btn">Save Trusted Baseline</button><button id="privacyInfo" class="btn">Privacy</button><button id="exportReport" class="btn">Export Report</button><button id="apkInspect" class="btn">Inspect APK</button></div><pre id="apkResult" hidden style="white-space:pre-wrap;overflow-wrap:anywhere"></pre><div id="nativePhoneResult" class="result" hidden></div></div>';
+            body.innerHTML='<div class="scouttrace-native-head"><div class="scouttrace-mark">⛨</div><div><strong>Your Security Investigator</strong><small>Detect · Correlate · Explain · Prioritize · Remediate</small></div></div><div class="panel"><div class="notice"><b>Native engine connected.</b> Analysis is local to this device.</div><div class="acts"><button id="nativePhoneScan" class="btn primary">Run Complete ScoutTrace</button><button id="saveBaseline" class="btn">Save Trusted Baseline</button><button id="privacyInfo" class="btn">Privacy</button><button id="exportReport" class="btn">Export Report</button><button id="apkInspect" class="btn">Inspect APK</button></div><pre id="apkResult" hidden style="white-space:pre-wrap;overflow-wrap:anywhere"></pre><div id="nativePhoneResult" class="result" hidden></div></div>';
             document.getElementById('saveBaseline').onclick=()=>{const r=JSON.parse(window.ScoutTraceNative.saveSecurityBaseline());alert(r.ok?'Trusted baseline saved on this device.':'Baseline could not be saved.');};
             document.getElementById('privacyInfo').onclick=()=>{const p=JSON.parse(window.ScoutTraceNative.privacySummary());alert(p.statement);};
             document.getElementById('apkInspect').onclick=()=>window.ScoutTraceNative.openApkPicker();
