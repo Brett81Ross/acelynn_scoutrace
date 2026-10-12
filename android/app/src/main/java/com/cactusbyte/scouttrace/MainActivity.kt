@@ -66,7 +66,8 @@ class MainActivity : Activity() {
                 setOf("https://acelynn-scoutrace.vercel.app")
             ) { _, message, origin, isMainFrame, reply ->
                 if (!isMainFrame || origin.scheme != "https" || origin.host != trustedHost ||
-                    (origin.port != -1 && origin.port != 443)) return@addWebMessageListener
+                    (origin.port != -1 && origin.port != 443) ||
+                    webView.url?.let { Uri.parse(it).host != trustedHost || Uri.parse(it).scheme != "https" } != false) return@addWebMessageListener
                 val raw = message.data ?: return@addWebMessageListener
                 if (raw.length > 8192) return@addWebMessageListener
                 val request = try { JSONObject(raw) } catch (_: Exception) { return@addWebMessageListener }
