@@ -47,7 +47,7 @@ class MainActivity : Activity() {
         webView.webViewClient = object : WebViewClient() {
             override fun shouldOverrideUrlLoading(view: WebView, request: android.webkit.WebResourceRequest): Boolean {
                 val uri = request.url
-                if (uri.scheme == "https" && uri.host == trustedHost) return false
+                if (uri.scheme == "https" && uri.host == trustedHost && (uri.port == -1 || uri.port == 443)) return false
                 if (request.isForMainFrame) {
                     try { startActivity(Intent(Intent.ACTION_VIEW, uri)) } catch (_: Exception) { }
                 }
@@ -67,7 +67,8 @@ class MainActivity : Activity() {
             }
             override fun onPageFinished(view: WebView, url: String) {
                 super.onPageFinished(view, url)
-                if (android.net.Uri.parse(url).host == trustedHost && android.net.Uri.parse(url).scheme == "https") injectPhoneSecuritySweep()
+                val page = Uri.parse(url)
+                if (page.host == trustedHost && page.scheme == "https" && (page.port == -1 || page.port == 443)) injectPhoneSecuritySweep()
             }
         }
         webView.webChromeClient = object : WebChromeClient() {
