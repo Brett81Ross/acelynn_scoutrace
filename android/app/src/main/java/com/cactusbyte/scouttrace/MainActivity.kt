@@ -204,7 +204,7 @@ class MainActivity : Activity() {
             nav.querySelectorAll('button').forEach(b=>{if(b.dataset.view===view)b.setAttribute('aria-current','page');else b.removeAttribute('aria-current');});
             if(view==='home'){document.getElementById('home')?.classList.add('active');document.getElementById('scan')?.classList.remove('active');}
             else if(view==='investigate'){launch();}
-            else if(view==='changes'){launch();document.getElementById('nativePhoneScan')?.click();document.getElementById('nativePhoneResult')?.querySelector('h3:nth-of-type(3)')?.scrollIntoView({block:'start',behavior:'smooth'});}
+            else if(view==='changes'){launch();document.getElementById('nativePhoneScan')?.click();const result=document.getElementById('nativePhoneResult');const heading=[...(result?.querySelectorAll('h3')||[])].find(h=>h.textContent?.trim()==='Security Diff');heading?.scrollIntoView({block:'start',behavior:'smooth'});}
             else if(view==='tools'){launch();document.getElementById('privacyInfo')?.focus();}
           };
           nav.querySelectorAll('button').forEach(b=>b.onclick=()=>select(b.dataset.view));
