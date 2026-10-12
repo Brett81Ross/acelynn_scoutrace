@@ -44,7 +44,9 @@ internal class SecureInvestigationStore(context: Context) {
         val cipher = Cipher.getInstance("AES/GCM/NoPadding")
         cipher.init(Cipher.ENCRYPT_MODE, key())
         val data = cipher.iv + cipher.doFinal(value.toByteArray(Charsets.UTF_8))
-        prefs.edit().putString(name, "gcm1:" + Base64.encodeToString(data, Base64.NO_WRAP)).commit()
+        check(prefs.edit().putString(name, "gcm1:" + Base64.encodeToString(data, Base64.NO_WRAP)).commit()) {
+            "Encrypted investigation data could not be saved"
+        }
     }
     fun remove(vararg names: String) {
         prefs.edit().apply { names.forEach { remove(it) } }.apply()
