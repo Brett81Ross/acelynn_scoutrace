@@ -86,6 +86,13 @@ class MainActivity : Activity() {
                     ?: return@addWebMessageListener
                 val method = request.optString("method")
                 val args = request.optJSONArray("args")
+                val allowedMethods = setOf("runSecurityScan", "saveSecurityBaseline", "privacySummary",
+                    "openApkPicker", "shareSecurityReport", "openAppSettings", "requestUninstall",
+                    "setAppDisposition", "openAccessibilitySettings", "openSecuritySettings", "clearSecurityHistory")
+                if (method !in allowedMethods) {
+                    reply.postMessage(JSONObject().put("id", id).put("ok", false).put("error", "Unsupported native operation").toString())
+                    return@addWebMessageListener
+                }
                 if (args != null && args.length() > 2) {
                     reply.postMessage(JSONObject().put("id", id).put("ok", false).put("error", "Too many arguments").toString())
                     return@addWebMessageListener
