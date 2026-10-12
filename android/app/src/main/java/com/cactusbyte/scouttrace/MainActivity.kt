@@ -189,7 +189,9 @@ class MainActivity : Activity() {
             val result = try { ApkInspector(applicationContext).inspect(uri).toString() }
                 catch (e: Exception) { org.json.JSONObject().put("ok", false).put("error", e.message ?: "APK inspection failed").toString() }
             runOnUiThread {
-                if (!isFinishing && !isDestroyed) {
+                val current = webView.url?.let(Uri::parse)
+                if (!isFinishing && !isDestroyed && current?.scheme == "https" && current.host == trustedHost &&
+                    (current.port == -1 || current.port == 443)) {
                     webView.evaluateJavascript("window.dispatchEvent(new CustomEvent(\"scouttrace-apk-result\",{detail:"+org.json.JSONObject.quote(result)+"}));", null)
                 }
             }
