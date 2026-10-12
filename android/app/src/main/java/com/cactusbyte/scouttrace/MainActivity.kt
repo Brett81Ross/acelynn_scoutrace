@@ -113,7 +113,8 @@ class MainActivity : Activity() {
                         .put("error", "Invalid package name").toString())
                     return@addWebMessageListener
                 }
-                nativeExecutor.execute {
+                try {
+                    nativeExecutor.execute {
                     val response = JSONObject().put("id", id)
                     try {
                         val value: Any = when (method) {
@@ -139,6 +140,10 @@ class MainActivity : Activity() {
                         if (!isFinishing && !isDestroyed && current?.scheme == "https" && current.host == trustedHost &&
                             (current.port == -1 || current.port == 443)) reply.postMessage(response.toString())
                     }
+                    }
+                } catch (_: java.util.concurrent.RejectedExecutionException) {
+                    reply.postMessage(JSONObject().put("id", id).put("ok", false)
+                        .put("error", "Investigation service is closing").toString())
                 }
             }
         }
