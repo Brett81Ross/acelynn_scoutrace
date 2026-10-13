@@ -338,9 +338,20 @@ class MainActivity : Activity() {
                 const r=JSON.parse(await nativeCall('runSecurityScan')),c=r.counts||{},fs=r.findings||[],b=r.baseline||{},pm=r.permissionMatrix||{},tl=r.timeline||[],disp=r.dispositions||{},cov=r.coverage||{},n=r.narrative||{};
                 const changes=b.exists?((b.newApps||[]).length+(b.removedApps||[]).length+(b.riskChanges||[]).length+(b.metadataChanges||[]).length):0,bn=b.narrative||{};
                 const quickSummary='<div class="scouttrace-summary-grid"><div class="scouttrace-metric"><b>'+esc(c.appsScanned??0)+'</b><small>Analyzed apps</small></div><div class="scouttrace-metric"><b>'+esc(changes)+'</b><small>Baseline changes</small></div><div class="scouttrace-metric"><b>'+esc(c.findings??0)+'</b><small>Findings</small></div><div class="scouttrace-metric"><b>'+esc((n.priorities||[]).length)+'</b><small>Priorities</small></div></div>';
-                const diffItems=b.exists?[...(b.newApps||[]).map(x=>({title:'Newly visible app',detail:x})),...(b.removedApps||[]).map(x=>({title:'App no longer visible',detail:x})),...(b.riskChanges||[]).map(x=>({title:'Risk classification changed',detail:x.packageName+' · '+x.fromLevel+' → '+x.toLevel})),...(b.metadataChanges||[]).map(x=>({title:'App metadata changed',detail:x.packageName+' · '+(x.fields||[]).join(', ')}))]:[];
+                const fieldNames={versionCode:'App version',installer:'Reported install source',installSourceStatus:'Install-source classification',requestedPermissions:'Declared permissions',grantedRuntimePermissions:'Granted permissions',overlayDeclared:'Overlay declaration',accessibilityEnabled:'Enabled Accessibility service',deviceAdminActive:'Active Device Administrator'};
+                const permissionName=x=>String(x).replace(/^android\\.permission\\./,'').replace(/_/g,' ').toLowerCase();
+                const diffItems=b.exists?[
+                  ...(b.newApps||[]).map(x=>({title:'Newly visible app',detail:x})),
+                  ...(b.removedApps||[]).map(x=>({title:'App no longer visible',detail:x})),
+                  ...(b.riskChanges||[]).map(x=>({title:'Risk classification changed',detail:x.packageName+' · '+x.fromLevel+' → '+x.toLevel})),
+                  ...(b.metadataChanges||[]).map(x=>{
+                    const labels=(x.fields||[]).map(k=>fieldNames[k]||k);
+                    const granted=(x.grantsAdded||[]).map(permissionName),revoked=(x.grantsRevoked||[]).map(permissionName);
+                    return {title:'App access or configuration changed',detail:x.packageName+' · '+labels.join(', ')+(granted.length?' · Now granted: '+granted.join(', '):'')+(revoked.length?' · No longer granted: '+revoked.join(', '):'')};
+                  })
+                ]:[];
                 const diffHtml=diffItems.length?diffItems.slice(0,40).map(x=>'<div class="hist"><strong>'+esc(x.title)+'</strong><div class="muted">'+esc(x.detail)+'</div></div>').join(''):'<div class="hist"><div class="muted">'+esc(b.exists?'No observed changes in available baseline fields.':'Save a trusted baseline to begin tracking observed changes.')+'</div></div>';
-                const diffContext='<p class="muted">Compared with your locally saved trusted baseline. A newly visible app is not necessarily newly installed; Android package visibility can change. A metadata change is not proof of malicious activity.</p>';
+                const diffContext='<p class="muted">Compared with your locally saved baseline. Visibility can change without an app being installed or removed. Scanner upgrades can also change classifications. Grant changes cover only the Android runtime permissions ScoutTrace observes, not every special-access setting.</p>';
                 const permissionHtml=Object.entries(pm).map(([k,v])=>{
                   const list=Array.isArray(v)?v:[], granted=list.filter(item=>item.granted===true).length;
                   const names={accessibilityEnabled:'ENABLED ACCESSIBILITY',deviceAdminActive:'ACTIVE DEVICE ADMINS',overlayDeclared:'OVERLAY DECLARATIONS',installPackagesDeclared:'INSTALL REQUEST DECLARATIONS'};
