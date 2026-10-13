@@ -471,9 +471,15 @@ class MainActivity : Activity() {
             (current.port != -1 && current.port != 443)) return
         val text = pendingSharedText ?: return
         val literal = JSONObject.quote(text)
+        // The remote app may mount asynchronously. Hold the text only in page memory
+        // until ScoutTrace installs its local-review event handler; never auto-open links.
         webView.evaluateJavascript(
-            "window.dispatchEvent(new CustomEvent('scouttrace-shared-text',{detail:" + literal + "}));"
-        ) { pendingSharedText = null }
+            "(function(){window.__scoutTracePendingSharedText=" + literal +
+            ";if(window.__scoutTracePhoneSweepInjected){" +
+            "const text=window.__scoutTracePendingSharedText;" +
+            "delete window.__scoutTracePendingSharedText;" +
+            "window.dispatchEvent(new CustomEvent('scouttrace-shared-text',{detail:text}));}})();"
+        ) { if (pendingSharedText == text) pendingSharedText = null }
     }
 
     override fun onNewIntent(intent: Intent) {
