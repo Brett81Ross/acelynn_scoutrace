@@ -339,7 +339,7 @@ class MainActivity : Activity() {
                 const changes=b.exists?((b.newApps||[]).length+(b.removedApps||[]).length+(b.riskChanges||[]).length+(b.metadataChanges||[]).length):0,bn=b.narrative||{};
                 const quickSummary='<div class="scouttrace-summary-grid"><div class="scouttrace-metric"><b>'+esc(c.appsScanned??0)+'</b><small>Analyzed apps</small></div><div class="scouttrace-metric"><b>'+esc(changes)+'</b><small>Baseline changes</small></div><div class="scouttrace-metric"><b>'+esc(c.findings??0)+'</b><small>Findings</small></div><div class="scouttrace-metric"><b>'+esc((n.priorities||[]).length)+'</b><small>Priorities</small></div></div>';
                 const fieldNames={versionCode:'App version',installer:'Reported install source',installSourceStatus:'Install-source classification',requestedPermissions:'Declared permissions',grantedRuntimePermissions:'Granted permissions',overlayDeclared:'Overlay declaration',accessibilityEnabled:'Enabled Accessibility service',deviceAdminActive:'Active Device Administrator'};
-                const permissionName=x=>String(x).replace(/^android\\.permission\\./,'').replace(/_/g,' ').toLowerCase();
+                const permissionName=x=>String(x).split('.').pop().replace(/_/g,' ').toLowerCase();
                 const diffItems=b.exists?[
                   ...(b.newApps||[]).map(x=>({title:'Newly visible app',detail:x})),
                   ...(b.removedApps||[]).map(x=>({title:'App no longer visible',detail:x})),
