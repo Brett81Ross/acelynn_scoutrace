@@ -13,7 +13,9 @@ class AppDispositionStore(context: Context) {
 
     private fun read(): JSONObject {
         val encrypted = secure.getString(key, null)
-        if (encrypted != null) return try { JSONObject(encrypted) } catch (_: Exception) { JSONObject() }
+        if (encrypted != null) return try { JSONObject(encrypted) } catch (e: Exception) {
+            throw IllegalStateException("Encrypted app classifications are malformed; refusing to overwrite them", e)
+        }
         val old = legacy.all
         if (old.isEmpty()) return JSONObject()
         val migrated = JSONObject()
@@ -41,6 +43,6 @@ class AppDispositionStore(context: Context) {
 
     fun clear() {
         secure.putString(key, "{}")
-        legacy.edit().clear().commit()
+        check(legacy.edit().clear().commit()) { "Could not clear legacy app classifications" }
     }
 }
