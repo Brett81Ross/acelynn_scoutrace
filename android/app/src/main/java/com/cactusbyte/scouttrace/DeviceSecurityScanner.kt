@@ -102,7 +102,12 @@ class DeviceSecurityScanner(private val context: Context) {
         if(network.optBoolean("vpnActive")) findings+=Finding("REVIEW","VPN is active","Network traffic is routed through a VPN. Verify that you recognize the provider.")
         if(network.optBoolean("captivePortal")) findings+=Finding("REVIEW","Captive portal detected","The current network requires a sign-in or interception page. Avoid sensitive activity until the network is validated.")
         val patch=Build.VERSION.SECURITY_PATCH
-        if(patch.isBlank()) findings+=Finding("REVIEW","Security patch unavailable","Android did not report a security patch level.")
+        val patchReview=SecurityPatchReview.assess(patch)
+        if(patchReview.reviewRecommended) {
+            val title=if(patchReview.status==SecurityPatchReview.Status.OLDER_DATE)
+                "Review Android security updates" else "Security patch date unavailable"
+            findings+=Finding("REVIEW",title,patchReview.detail)
+        }
         val health=deviceHealth()
         if(health.optBoolean("developerOptionsEnabled")) findings+=Finding("REVIEW","Developer options enabled","Developer options are enabled. This may be intentional; review the setting if you did not enable it.")
 
@@ -115,6 +120,10 @@ class DeviceSecurityScanner(private val context: Context) {
             .put("reputation",ReputationStatus.current())
             .put("platform","Android ${Build.VERSION.RELEASE}")
             .put("securityPatch",patch.ifBlank{"unknown"})
+            .put("securityPatchReview",JSONObject()
+                .put("status",patchReview.status.name)
+                .put("ageDays",patchReview.ageDays ?: JSONObject.NULL)
+                .put("detail",patchReview.detail))
             .put("network",network)
             .put("deviceHealth",health)
             .put("deviceProfile",DeviceProfile.current())
