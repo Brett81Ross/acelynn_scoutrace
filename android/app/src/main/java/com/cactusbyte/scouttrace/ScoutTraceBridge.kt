@@ -23,12 +23,15 @@ class ScoutTraceBridge(private val context: Context) {
 
     fun runSecurityScan(): String {
         val result = DeviceSecurityScanner(context).scan()
-        val fingerprint = fingerprint(result)
-        val old = secure.getString("lastFingerprint", null)
-        if (old != null && old != fingerprint) addTimelineEvent("Security state changed", result.optString("level", "REVIEW"), result.optString("summary"))
-        secure.putString("lastFingerprint", fingerprint)
         val baseline = baselineComparison(result)
         baseline.put("narrative", BaselineNarrative.summarize(baseline))
+        val fingerprint = fingerprint(result)
+        val old = secure.getString("lastFingerprint", null)
+        if (old != null && old != fingerprint) {
+            addTimelineEvent("Observed visible-app state changed",
+                result.optString("level", "REVIEW"), SecurityChangeNarrative.describe(baseline))
+        }
+        secure.putString("lastFingerprint", fingerprint)
         result.put("baseline", baseline)
         result.put("timeline", timeline())
         result.put("dispositions", AppDispositionStore(context).all())
