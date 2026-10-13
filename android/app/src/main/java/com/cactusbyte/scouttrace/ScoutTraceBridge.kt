@@ -39,14 +39,15 @@ class ScoutTraceBridge(private val context: Context) {
     fun saveSecurityBaseline(): String {
         val result = DeviceSecurityScanner(context).scan()
         secure.putString("baseline", result.toString())
-        prefs.edit().putLong("baselineAt", System.currentTimeMillis()).apply()
+        check(prefs.edit().putLong("baselineAt", System.currentTimeMillis()).commit()) {
+            "Baseline timestamp could not be saved"
+        }
         addTimelineEvent("Security baseline saved", "CLEAR", "Current Android security state stored locally for future comparison.")
         return JSONObject().put("ok", true).put("savedAt", prefs.getLong("baselineAt", 0)).toString()
     }
 
     fun clearSecurityHistory(): Boolean {
         secure.remove("timeline", "baseline", "lastFingerprint", "baselineAt")
-        prefs.edit().remove("baselineAt").apply()
         return true
     }
 
@@ -148,7 +149,9 @@ class ScoutTraceBridge(private val context: Context) {
                 .put("riskChanges", changed)
                 .put("metadataChanges", metadataChanges)
                 .put("levelChanged", base.optString("level") != current.optString("level"))
-        } catch (_: Exception) { JSONObject().put("exists", false) }
+        } catch (e: Exception) {
+            throw IllegalStateException("Saved baseline is unreadable; refusing to treat it as missing", e)
+        }
     }
 
     private fun appMetadata(a: JSONArray?): Map<String, JSONObject> {
@@ -197,11 +200,15 @@ class ScoutTraceBridge(private val context: Context) {
     }
 
     private fun addTimelineEvent(title: String, level: String, detail: String) {
-        val a = try { JSONArray(secure.getString("timeline", "[]")) } catch (_: Exception) { JSONArray() }
+        val a = try { JSONArray(secure.getString("timeline", "[]")) } catch (e: Exception) {
+            throw IllegalStateException("Security timeline is unreadable; refusing to overwrite it", e)
+        }
         val next = JSONArray().put(JSONObject().put("time", System.currentTimeMillis()).put("title", title).put("level", level).put("detail", detail))
         for (i in 0 until minOf(a.length(), 49)) next.put(a.get(i))
         secure.putString("timeline", next.toString())
     }
 
-    private fun timeline(): JSONArray = try { JSONArray(secure.getString("timeline", "[]")) } catch (_: Exception) { JSONArray() }
+    private fun timeline(): JSONArray = try { JSONArray(secure.getString("timeline", "[]")) } catch (e: Exception) {
+        throw IllegalStateException("Security timeline is unreadable; refusing to hide the error", e)
+    }
 }
