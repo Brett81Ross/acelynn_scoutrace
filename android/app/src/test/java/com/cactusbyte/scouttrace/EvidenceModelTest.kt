@@ -13,11 +13,27 @@ class EvidenceModelTest {
         assertEquals(1, r.getInt("indicatorCount"))
     }
 
-    @Test fun accessibilityPlusOverlayCorrelates() {
+    @Test fun accessibilityPlusUnverifiedOverlayIsNotStrongCorrelation() {
         val r = EvidenceModel.assess(false, true, false, true, false, false)
+        assertEquals("MEDIUM", r.getString("confidence"))
+        assertFalse(r.getBoolean("correlated"))
+        assertEquals(1, r.getInt("verifiedPrivilegeCount"))
+        assertEquals(1, r.getInt("declaredCapabilityCount"))
+        assertEquals(2, r.getInt("indicatorCount"))
+    }
+
+    @Test fun verifiedAccessibilityAndActiveAdminAreCorrelated() {
+        val r = EvidenceModel.assess(false, true, true, false, false, false)
         assertEquals("HIGH", r.getString("confidence"))
         assertTrue(r.getBoolean("correlated"))
-        assertEquals(2, r.getInt("indicatorCount"))
+        assertEquals(2, r.getInt("verifiedPrivilegeCount"))
+    }
+
+    @Test fun declarationsAloneCannotProduceHighConfidence() {
+        val r = EvidenceModel.assess(true, false, false, true, true, true)
+        assertEquals("LOW", r.getString("confidence"))
+        assertFalse(r.getBoolean("correlated"))
+        assertEquals(0, r.getInt("verifiedPrivilegeCount"))
     }
 
     @Test fun noIndicatorsIsInsufficient() {
