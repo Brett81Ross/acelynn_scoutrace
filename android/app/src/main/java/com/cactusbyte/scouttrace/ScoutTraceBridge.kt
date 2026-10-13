@@ -116,69 +116,14 @@ class ScoutTraceBridge(private val context: Context) {
     } catch (_: Exception) { false }
 
     private fun baselineComparison(current: JSONObject): JSONObject {
-        val raw = secure.getString("baseline", null) ?: return JSONObject().put("exists", false)
+        val raw = secure.getString("baseline", null)
+            ?: return JSONObject().put("exists", false)
         return try {
-            val base = JSONObject(raw)
-            val nowPkgs = packageSet(current.optJSONArray("appRisks"))
-            val basePkgs = packageSet(base.optJSONArray("appRisks"))
-            val baseRisk = riskMap(base.optJSONArray("appRisks"))
-            val nowRisk = riskMap(current.optJSONArray("appRisks"))
-            val changed = JSONArray()
-            (baseRisk.keys intersect nowRisk.keys).sorted().forEach { pkg ->
-                val before = baseRisk[pkg]!!
-                val after = nowRisk[pkg]!!
-                if (before.first != after.first || before.second != after.second) {
-                    changed.put(JSONObject()
-                        .put("packageName", pkg)
-                        .put("fromLevel", before.first).put("toLevel", after.first)
-                        .put("fromScore", before.second).put("toScore", after.second))
-                }
-            }
-            val metadataChanges = JSONArray()
-            val oldApps = appMetadata(base.optJSONArray("appRisks"))
-            val newApps = appMetadata(current.optJSONArray("appRisks"))
-            (oldApps.keys intersect newApps.keys).sorted().forEach { pkg ->
-                val before = oldApps.getValue(pkg)
-                val after = newApps.getValue(pkg)
-                val fields = listOf("versionCode", "installer", "installSourceStatus", "requestedPermissions", "grantedRuntimePermissions", "overlayDeclared", "accessibilityEnabled", "deviceAdminActive")
-                val changes = JSONArray()
-                fields.forEach { field ->
-                    if (before.opt(field)?.toString() != after.opt(field)?.toString()) changes.put(field)
-                }
-                if (changes.length() > 0) metadataChanges.put(JSONObject().put("packageName", pkg).put("fields", changes))
-            }
-            JSONObject().put("exists", true).put("savedAt", prefs.getLong("baselineAt", 0))
-                .put("newApps", JSONArray((nowPkgs - basePkgs).sorted()))
-                .put("removedApps", JSONArray((basePkgs - nowPkgs).sorted()))
-                .put("riskChanges", changed)
-                .put("metadataChanges", metadataChanges)
-                .put("levelChanged", base.optString("level") != current.optString("level"))
+            BaselineComparator.compare(JSONObject(raw), current, prefs.getLong("baselineAt", 0))
         } catch (e: Exception) {
-            throw IllegalStateException("Saved baseline is unreadable; refusing to treat it as missing", e)
+            // A failed comparison is not evidence that the saved baseline disappeared.
+            throw IllegalStateException("Saved baseline could not be compared; refusing to hide or overwrite it", e)
         }
-    }
-
-    private fun appMetadata(a: JSONArray?): Map<String, JSONObject> {
-        if (a == null) return emptyMap()
-        return (0 until a.length()).mapNotNull { i ->
-            val item = a.optJSONObject(i) ?: return@mapNotNull null
-            val pkg = item.optString("packageName").takeIf(String::isNotBlank) ?: return@mapNotNull null
-            pkg to item
-        }.toMap()
-    }
-
-    private fun packageSet(a: JSONArray?): Set<String> {
-        if (a == null) return emptySet()
-        return (0 until a.length()).mapNotNull { a.optJSONObject(it)?.optString("packageName")?.takeIf(String::isNotBlank) }.toSet()
-    }
-
-    private fun riskMap(a: JSONArray?): Map<String, Pair<String, Int>> {
-        if (a == null) return emptyMap()
-        return (0 until a.length()).mapNotNull { i ->
-            val item = a.optJSONObject(i) ?: return@mapNotNull null
-            val pkg = item.optString("packageName").takeIf(String::isNotBlank) ?: return@mapNotNull null
-            pkg to (item.optString("level") to item.optInt("score"))
-        }.toMap()
     }
 
     private fun fingerprint(result: JSONObject): String {
