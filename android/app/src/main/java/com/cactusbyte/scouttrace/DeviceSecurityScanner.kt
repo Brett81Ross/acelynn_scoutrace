@@ -44,7 +44,8 @@ class DeviceSecurityScanner(private val context: Context) {
             val requested=pkg.requestedPermissions?.toSet().orEmpty()
             val enabledA11y=pkg.packageName in accessibility
             val admin=pkg.packageName in admins
-            val overlay=pm.checkPermission("android.permission.SYSTEM_ALERT_WINDOW",pkg.packageName)==PackageManager.PERMISSION_GRANTED
+            // This checks the APK declaration, not active AppOps overlay access.
+            val overlay="android.permission.SYSTEM_ALERT_WINDOW" in requested
             val canInstall="android.permission.REQUEST_INSTALL_PACKAGES" in requested
             val debuggable=app.flags and ApplicationInfo.FLAG_DEBUGGABLE != 0
             val trusted=installer=="com.android.vending" || installer?.contains("google",true)==true || installer?.contains("samsung",true)==true
@@ -52,7 +53,10 @@ class DeviceSecurityScanner(private val context: Context) {
             if(side) sideloaded++
 
             buckets.forEach { (label,permission) ->
-                if(permission in requested) permissionMatrix.getJSONArray(label).put(JSONObject().put("name",appLabel(pkg)).put("packageName",pkg.packageName))
+                if(permission in requested) permissionMatrix.getJSONArray(label).put(JSONObject()
+                    .put("name",appLabel(pkg)).put("packageName",pkg.packageName)
+                    .put("requested", true)
+                    .put("granted", pm.checkPermission(permission, pkg.packageName) == PackageManager.PERMISSION_GRANTED))
             }
 
             var score=0
@@ -60,7 +64,7 @@ class DeviceSecurityScanner(private val context: Context) {
             if(side){score+=2;reasons+="unrecognized install source"}
             if(enabledA11y){score+=4;reasons+="enabled Accessibility service"}
             if(admin){score+=4;reasons+="active Device Administrator"}
-            if(overlay){score+=2;reasons+="requests overlay capability"}
+            if(overlay){score+=2;reasons+="declares overlay permission; active access not verified"}
             if(canInstall){score+=2;reasons+="can request package installs"}
             if(debuggable){score+=1;reasons+="debuggable build"}
             if(enabledA11y && (overlay || canInstall || side)) score+=3
@@ -73,7 +77,12 @@ class DeviceSecurityScanner(private val context: Context) {
                 score>=1->"REVIEW"
                 else->"CLEAR"
             }
-            appRisks.put(JSONObject().put("name",appLabel(pkg)).put("packageName",pkg.packageName).put("level",level).put("score",score).put("installer",installer?:"unknown").put("versionCode",if(Build.VERSION.SDK_INT>=28)pkg.longVersionCode else @Suppress("DEPRECATION") pkg.versionCode.toLong()).put("requestedPermissions",JSONArray(requested.sorted())).put("accessibilityEnabled",enabledA11y).put("deviceAdminActive",admin).put("reasons",JSONArray(reasons)).put("evidence",evidence))
+            appRisks.put(JSONObject().put("name",appLabel(pkg)).put("packageName",pkg.packageName).put("level",level).put("score",score).put("installer",installer?:"unknown").put("versionCode",if(Build.VERSION.SDK_INT>=28)pkg.longVersionCode else @Suppress("DEPRECATION") pkg.versionCode.toLong()).put("requestedPermissions",JSONArray(requested.sorted()))
+                .put("grantedRuntimePermissions", JSONArray(buckets.values.filter {
+                    it in requested && pm.checkPermission(it, pkg.packageName) == PackageManager.PERMISSION_GRANTED
+                }.sorted()))
+                .put("overlayDeclared", overlay)
+                .put("accessibilityEnabled",enabledA11y).put("deviceAdminActive",admin).put("reasons",JSONArray(reasons)).put("evidence",evidence))
             if(level!="CLEAR") findings+=Finding(level,appLabel(pkg),reasons.joinToString(" • "),pkg.packageName)
         }
 
