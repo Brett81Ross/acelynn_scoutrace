@@ -82,7 +82,8 @@ class ScoutTraceBridge(private val context: Context) {
         out.append("Security patch: ").append(r.optString("securityPatch")).append("\n")
         out.append("Packages inspected: ").append(counts.optInt("appsScanned")).append("\n")
         out.append("Findings: ").append(counts.optInt("findings")).append("\n")
-        out.append("Sideload indicators: ").append(counts.optInt("sideloaded")).append("\n\n")
+        out.append("Other installer identifiers observed: ").append(counts.optInt("otherInstallers")).append("\n")
+        out.append("Apps with unavailable installer identity: ").append(counts.optInt("unknownInstallers")).append("\n\n")
         for (i in 0 until findings.length()) {
             val item = findings.optJSONObject(i) ?: continue
             out.append("[").append(item.optString("level")).append("] ")
@@ -136,7 +137,7 @@ class ScoutTraceBridge(private val context: Context) {
             (oldApps.keys intersect newApps.keys).sorted().forEach { pkg ->
                 val before = oldApps.getValue(pkg)
                 val after = newApps.getValue(pkg)
-                val fields = listOf("versionCode", "installer", "requestedPermissions", "grantedRuntimePermissions", "overlayDeclared", "accessibilityEnabled", "deviceAdminActive")
+                val fields = listOf("versionCode", "installer", "installSourceStatus", "requestedPermissions", "grantedRuntimePermissions", "overlayDeclared", "accessibilityEnabled", "deviceAdminActive")
                 val changes = JSONArray()
                 fields.forEach { field ->
                     if (before.opt(field)?.toString() != after.opt(field)?.toString()) changes.put(field)
