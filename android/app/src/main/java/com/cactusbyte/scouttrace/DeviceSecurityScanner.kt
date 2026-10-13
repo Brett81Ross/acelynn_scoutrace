@@ -48,7 +48,7 @@ class DeviceSecurityScanner(private val context: Context) {
             val overlay="android.permission.SYSTEM_ALERT_WINDOW" in requested
             val canInstall="android.permission.REQUEST_INSTALL_PACKAGES" in requested
             val debuggable=app.flags and ApplicationInfo.FLAG_DEBUGGABLE != 0
-            val trusted=installer in setOf("com.android.vending", "com.sec.android.app.samsungapps")
+            val trusted=InstallSourceTrust.isKnownStore(installer)
             val side=installer.isNullOrBlank() || !trusted
             if(side) sideloaded++
 
