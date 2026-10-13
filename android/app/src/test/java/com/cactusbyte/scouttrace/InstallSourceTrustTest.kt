@@ -18,4 +18,16 @@ class InstallSourceTrustTest {
         assertFalse(InstallSourceTrust.isKnownStore(""))
         assertFalse(InstallSourceTrust.isKnownStore(null))
     }
+    @Test fun unavailableInstallerIsNotReportedAsSideloading() {
+        assertTrue(InstallSourceTrust.classify(null) == InstallSourceTrust.Source.UNKNOWN)
+        assertTrue(InstallSourceTrust.classify("") == InstallSourceTrust.Source.UNKNOWN)
+        assertTrue(InstallSourceTrust.classify("  ") == InstallSourceTrust.Source.UNKNOWN)
+    }
+
+    @Test fun knownVersusAlternativeInstallerIdentitiesStayDistinct() {
+        assertTrue(InstallSourceTrust.classify("com.android.vending") == InstallSourceTrust.Source.KNOWN_STORE)
+        assertTrue(InstallSourceTrust.classify("com.sec.android.app.samsungapps") == InstallSourceTrust.Source.KNOWN_STORE)
+        assertTrue(InstallSourceTrust.classify("com.fake.google.market") == InstallSourceTrust.Source.OTHER_INSTALLER)
+        assertTrue(InstallSourceTrust.classify("org.fdroid.fdroid") == InstallSourceTrust.Source.OTHER_INSTALLER)
+    }
 }
