@@ -210,15 +210,18 @@ class MainActivity : Activity() {
     private fun injectPhoneSecuritySweep() {
         val js = """
         (() => {
-          if (window.__scoutTracePhoneSweepInjected) return;
-          window.__scoutTracePhoneSweepInjected = true;
-          const nativePending=new Map();
-          let nativeSequence=0;
-          const nativePort=window.ScoutTraceNative;
-          if(!nativePort || typeof nativePort.postMessage!=='function'){
-            console.warn('ScoutTrace secure native messaging unavailable');
-            return;
-          }
+          const mount=()=>{
+            if(window.__scoutTracePhoneSweepInjected) return true;
+            const grid=document.querySelector('.grid');
+            if(!grid)return false;
+            const nativePort=window.ScoutTraceNative;
+            if(!nativePort || typeof nativePort.postMessage!=='function'){
+              console.warn('ScoutTrace secure native messaging unavailable');
+              return true;
+            }
+            window.__scoutTracePhoneSweepInjected=true;
+            const nativePending=new Map();
+            let nativeSequence=0;
           nativePort.onmessage=event=>{
             try{
               const msg=JSON.parse(event.data),p=nativePending.get(msg.id);
@@ -234,7 +237,7 @@ class MainActivity : Activity() {
             try{nativePort.postMessage(JSON.stringify({id,method,args}));}
             catch(e){clearTimeout(timeout);nativePending.delete(id);reject(e);}
           });
-          const grid=document.querySelector('.grid'); if(!grid) return;
+          // Grid presence was checked before native handlers were installed.
           // Approved ScoutTrace ten-screen visual language: scoped, reversible styling.
           if(!document.getElementById('scouttrace-design-lock')) {
             const theme=document.createElement('style');
@@ -436,6 +439,21 @@ class MainActivity : Activity() {
             const field=document.getElementById('scouttraceScamText');
             if(field){field.value=event.detail.slice(0,4000);field.focus();}
           });
+            const queued=window.__scoutTracePendingSharedText;
+            if(typeof queued==='string'){
+              delete window.__scoutTracePendingSharedText;
+              window.dispatchEvent(new CustomEvent('scouttrace-shared-text',{detail:queued}));
+            }
+            return true;
+          };
+          if(mount())return;
+          if(window.__scoutTraceMountObserver)return;
+          const observer=new MutationObserver(()=>{
+            if(mount()){observer.disconnect();window.__scoutTraceMountObserver=null;}
+          });
+          window.__scoutTraceMountObserver=observer;
+          observer.observe(document.documentElement,{childList:true,subtree:true});
+          setTimeout(()=>{observer.disconnect();window.__scoutTraceMountObserver=null;},30000);
         })();
         """.trimIndent()
         webView.evaluateJavascript(js) { deliverSharedText() }
