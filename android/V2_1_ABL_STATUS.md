@@ -19,6 +19,10 @@ Validation branch only. No production deployment is authorized by this document.
 - Native Privacy Center model.
 - Text security report export.
 - Native Android report sharing, wired to the Complete ScoutTrace Export Report action.
+- Origin-restricted WebKit native messaging replaces legacy JavaScript interfaces; strict main-frame and method allowlists apply.
+- Android native share-sheet text import feeds locally reviewed Scam Second Opinion without automatically opening links.
+- Runtime-sensitive Permission Matrix distinguishes manifest requests from granted state and tracks grants in baseline comparisons.
+- Encrypted record corruption and failed persistence cannot silently reset or overwrite data; deletion failures are surfaced.
 - Static APK Inspector foundation: SHA-256, package, version, requested permissions.
 - Play/internal distribution flavors.
 - Play manifest removes unrestricted package visibility and declares limited launcher visibility.
@@ -36,7 +40,7 @@ Validation branch only. No production deployment is authorized by this document.
 - APK Inspector native document picker.
 - APK signing-certificate and SDK metadata.
 - Protected threat-reputation backend.
-- Encrypted local baseline/history storage.
+- Keystore AES-GCM baseline/history storage and encrypted Trust/Watch/Ignore records have been implemented on the validation branch; device migration and error-path QA remain open.
 - Complete ScoutTrace UI rendering is substantially wired for narrative headline, remediation next steps, baseline narrative, visible-package wording, and coverage disclosure; final device QA remains.
 - Branded QR sharing.
 - Background baseline checks.
@@ -44,8 +48,8 @@ Validation branch only. No production deployment is authorized by this document.
 - OEM-specific remediation fallbacks.
 
 ## Validation gates still open
-- Current v2.1 branch has not produced a successful CI run after the Play-flavor changes.
-- Compile, unit test, lint, and release bundle must pass.
+- Play-flavor compilation, lint, unit tests and artifact build have succeeded on earlier validation commits; the final candidate head must independently pass CI again.
+- Compile, unit test, lint, and release bundle must pass at the exact final release candidate commit.
 - Physical-device QA remains required.
 - Google Play manifest/package-visibility policy audit remains required.
 - Privacy/Data Safety and claim-language audits remain required.
