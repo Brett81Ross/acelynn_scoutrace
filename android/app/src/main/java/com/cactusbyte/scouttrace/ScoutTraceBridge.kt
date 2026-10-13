@@ -135,7 +135,7 @@ class ScoutTraceBridge(private val context: Context) {
             (oldApps.keys intersect newApps.keys).sorted().forEach { pkg ->
                 val before = oldApps.getValue(pkg)
                 val after = newApps.getValue(pkg)
-                val fields = listOf("versionCode", "installer", "requestedPermissions", "accessibilityEnabled", "deviceAdminActive")
+                val fields = listOf("versionCode", "installer", "requestedPermissions", "grantedRuntimePermissions", "overlayDeclared", "accessibilityEnabled", "deviceAdminActive")
                 val changes = JSONArray()
                 fields.forEach { field ->
                     if (before.opt(field)?.toString() != after.opt(field)?.toString()) changes.put(field)
@@ -185,6 +185,8 @@ class ScoutTraceBridge(private val context: Context) {
                     item.optString("versionCode"),
                     item.optString("installer"),
                     item.optString("requestedPermissions"),
+                    item.optString("grantedRuntimePermissions"),
+                    item.optString("overlayDeclared"),
                     item.optString("accessibilityEnabled"),
                     item.optString("deviceAdminActive")
                 ).joinToString("|")
