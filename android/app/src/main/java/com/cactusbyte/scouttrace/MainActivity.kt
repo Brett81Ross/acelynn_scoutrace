@@ -367,7 +367,20 @@ class MainActivity : Activity() {
                 document.getElementById('openSecurity').onclick=()=>nativeCall('openSecuritySettings');
                 document.getElementById('clearNativeClassifications').onclick=async()=>{if(!confirm('Remove all saved Trust, Watch and Ignore choices on this device?'))return;try{const ok=await nativeCall('clearAppDispositions');if(ok!==true)throw new Error('Not cleared');alert('Saved classifications cleared. Run a new investigation to refresh the results.');}catch(e){alert('Could not clear saved classifications.');}};
                 document.getElementById('clearNativeHistory').onclick=async()=>{if(!confirm('Clear ScoutTrace baseline and local security timeline?'))return;try{const ok=await nativeCall('clearSecurityHistory');if(ok!==true)throw new Error('Not cleared');out.innerHTML='<div class="notice">Local ScoutTrace security data cleared.</div>';}catch(e){alert('Could not clear local security data.');}}
-              }catch(e){out.innerHTML='<div class="status review">REVIEW</div><p class="muted">Native scan failed: '+esc(e.message)+'</p>';}
+              }catch(e){
+                out.innerHTML='<div class="status review">INCOMPLETE</div><p class="muted">Investigation could not complete. ScoutTrace has not declared the device safe or unsafe.</p><p class="muted">If locally stored encrypted records have become unreadable, you can choose to erase only the affected category below. These actions cannot be undone.</p><div class="acts"><button type="button" id="retryInvestigation">Try Again</button><button type="button" id="recoverHistory">Erase Local History / Baseline</button><button type="button" id="recoverClassifications">Erase App Classifications</button></div>';
+                out.querySelector('#retryInvestigation').onclick=()=>document.getElementById('nativePhoneScan')?.click();
+                out.querySelector('#recoverHistory').onclick=async()=>{
+                  if(!confirm('Permanently erase the encrypted baseline, timeline and fingerprint stored on this device?'))return;
+                  try{if(await nativeCall('clearSecurityHistory')!==true)throw new Error('Not deleted');out.innerHTML='<p class="muted">Local investigation history erased. You may start a fresh scan.</p>';}
+                  catch(_){alert('Deletion failed. Existing records may remain on this device.');}
+                };
+                out.querySelector('#recoverClassifications').onclick=async()=>{
+                  if(!confirm('Permanently erase all saved Trust, Watch and Ignore classifications on this device?'))return;
+                  try{if(await nativeCall('clearAppDispositions')!==true)throw new Error('Not deleted');out.innerHTML='<p class="muted">Saved app classifications erased. Run a new investigation to continue.</p>';}
+                  catch(_){alert('Deletion failed. Existing classifications may remain on this device.');}
+                };
+              }
             };
           };
           const launcher=document.createElement('section');
