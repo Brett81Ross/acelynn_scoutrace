@@ -30,12 +30,14 @@ class DeviceSecurityScanner(private val context: Context) {
             "sms" to "android.permission.READ_SMS",
             "phone" to "android.permission.READ_PHONE_STATE"
         )
-        buckets.keys.forEach { permissionMatrix.put(it,JSONArray()) }
+        (buckets.keys + listOf("accessibilityEnabled", "deviceAdminActive", "overlayDeclared", "installPackagesDeclared"))
+            .forEach { permissionMatrix.put(it, JSONArray()) }
         val packages=installedPackages()
         val accessibility=enabledAccessibilityPackages()
         val admins=activeAdminPackages()
         val network=networkState()
-        var sideloaded=0
+        var otherInstallers=0
+        var unknownInstallers=0
 
         for(pkg in packages) {
             val app=pkg.applicationInfo ?: continue
@@ -48,9 +50,10 @@ class DeviceSecurityScanner(private val context: Context) {
             val overlay="android.permission.SYSTEM_ALERT_WINDOW" in requested
             val canInstall="android.permission.REQUEST_INSTALL_PACKAGES" in requested
             val debuggable=app.flags and ApplicationInfo.FLAG_DEBUGGABLE != 0
-            val trusted=InstallSourceTrust.isKnownStore(installer)
-            val side=installer.isNullOrBlank() || !trusted
-            if(side) sideloaded++
+            val source=InstallSourceTrust.classify(installer)
+            val side=source == InstallSourceTrust.Source.OTHER_INSTALLER
+            if(side) otherInstallers++
+            if(source == InstallSourceTrust.Source.UNKNOWN) unknownInstallers++
 
             buckets.forEach { (label,permission) ->
                 if(permission in requested) permissionMatrix.getJSONArray(label).put(JSONObject()
@@ -59,13 +62,23 @@ class DeviceSecurityScanner(private val context: Context) {
                     .put("granted", pm.checkPermission(permission, pkg.packageName) == PackageManager.PERMISSION_GRANTED))
             }
 
+            fun special(bucket: String, state: String, verified: Boolean?) {
+                val item = JSONObject().put("name", appLabel(pkg)).put("packageName", pkg.packageName).put("state", state)
+                item.put("granted", verified ?: JSONObject.NULL)
+                permissionMatrix.getJSONArray(bucket).put(item)
+            }
+            if(enabledA11y) special("accessibilityEnabled", "ENABLED", true)
+            if(admin) special("deviceAdminActive", "ACTIVE", true)
+            if(overlay) special("overlayDeclared", "DECLARED_ACCESS_UNVERIFIED", null)
+            if(canInstall) special("installPackagesDeclared", "DECLARED_ACCESS_UNVERIFIED", null)
+
             var score=0
             val reasons=mutableListOf<String>()
-            if(side){score+=2;reasons+="unrecognized install source"}
+            if(side){score+=2;reasons+="installer differs from recognized store identifiers; not proof of sideloading"}
             if(enabledA11y){score+=4;reasons+="enabled Accessibility service"}
             if(admin){score+=4;reasons+="active Device Administrator"}
             if(overlay){score+=2;reasons+="declares overlay permission; active access not verified"}
-            if(canInstall){score+=2;reasons+="can request package installs"}
+            if(canInstall){score+=2;reasons+="declares package-install request permission; active ability not verified"}
             if(debuggable){score+=1;reasons+="debuggable build"}
             if(enabledA11y && (overlay || canInstall || side)) score+=3
             val evidence=EvidenceModel.assess(side,enabledA11y,admin,overlay,canInstall,debuggable)
@@ -77,7 +90,7 @@ class DeviceSecurityScanner(private val context: Context) {
                 score>=1->"REVIEW"
                 else->"CLEAR"
             }
-            appRisks.put(JSONObject().put("name",appLabel(pkg)).put("packageName",pkg.packageName).put("level",level).put("score",score).put("installer",installer?:"unknown").put("versionCode",if(Build.VERSION.SDK_INT>=28)pkg.longVersionCode else @Suppress("DEPRECATION") pkg.versionCode.toLong()).put("requestedPermissions",JSONArray(requested.sorted()))
+            appRisks.put(JSONObject().put("name",appLabel(pkg)).put("packageName",pkg.packageName).put("level",level).put("score",score).put("installer",installer?:"unknown").put("installSourceStatus",source.name).put("versionCode",if(Build.VERSION.SDK_INT>=28)pkg.longVersionCode else @Suppress("DEPRECATION") pkg.versionCode.toLong()).put("requestedPermissions",JSONArray(requested.sorted()))
                 .put("grantedRuntimePermissions", JSONArray(buckets.values.filter {
                     it in requested && pm.checkPermission(it, pkg.packageName) == PackageManager.PERMISSION_GRANTED
                 }.sorted()))
@@ -96,7 +109,7 @@ class DeviceSecurityScanner(private val context: Context) {
         val highest=when{findings.any{it.level=="HIGH CAUTION"}->"HIGH CAUTION";findings.any{it.level=="ELEVATED"}->"ELEVATED";findings.any{it.level=="REVIEW"}->"REVIEW";else->"CLEAR"}
         return JSONObject()
             .put("level",highest)
-            .put("summary","Inspected ${packages.size} packages visible to ScoutTrace and Android-exposed security signals. Findings are indicators for review, not proof of malware.")
+            .put("summary","Analyzed ${appRisks.length()} non-system apps from ${packages.size} Android-visible packages. Findings are indicators for review, not proof of malware.")
             .put("visibility",VisibilityStatus(context).describe(packages.size))
             .put("coverage",ScanCoverage.packageCoverage(packages.size))
             .put("reputation",ReputationStatus.current())
@@ -105,7 +118,9 @@ class DeviceSecurityScanner(private val context: Context) {
             .put("network",network)
             .put("deviceHealth",health)
             .put("deviceProfile",DeviceProfile.current())
-            .put("counts",JSONObject().put("appsScanned",packages.size).put("findings",findings.size).put("sideloaded",sideloaded))
+            .put("counts",JSONObject().put("appsScanned",appRisks.length()).put("visiblePackages",packages.size)
+                .put("findings",findings.size).put("sideloaded",otherInstallers)
+                .put("otherInstallers",otherInstallers).put("unknownInstallers",unknownInstallers))
             .put("findings",JSONArray().apply{findings.sortedBy{rank(it.level)}.forEach{put(JSONObject().put("level",it.level).put("title",it.title).put("detail",it.detail).put("packageName",it.packageName).put("remediation",RemediationGuide.forFinding(it.level,it.packageName)))}})
             .put("appRisks",appRisks)
             .put("permissionMatrix",permissionMatrix)
