@@ -51,6 +51,8 @@ internal class SecureInvestigationStore(context: Context) {
         }
     }
     fun remove(vararg names: String) {
-        prefs.edit().apply { names.forEach { remove(it) } }.apply()
+        check(prefs.edit().apply { names.forEach { remove(it) } }.commit()) {
+            "Local investigation records could not be deleted"
+        }
     }
 }
