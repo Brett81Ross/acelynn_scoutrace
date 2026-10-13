@@ -22,6 +22,12 @@ Validation branch only. No production deployment is authorized by this document.
 - Origin-restricted WebKit native messaging replaces legacy JavaScript interfaces; strict main-frame and method allowlists apply.
 - Android native share-sheet text import feeds locally reviewed Scam Second Opinion without automatically opening links.
 - Runtime-sensitive Permission Matrix distinguishes manifest requests from granted state and tracks grants in baseline comparisons.
+- Baseline Comparator now reports named runtime permission grants and revocations, skips comparison for fields missing from legacy baselines, and has direct JVM regression tests.
+- Install source observations distinguish recognized store ID, alternative installer ID, and unavailable Android installer metadata; source identity is not proof of sideloading.
+- Strongest evidence correlation now requires Android-observed Accessibility and active Device Administrator states instead of unverified manifest declarations.
+- Security patch date advisories use date parsing and a 180-day review threshold, without claiming an old patch date indicates malware.
+- Native investigation UI now waits for asynchronously rendered web content, and received Android share text is queued until local Scam Review can receive it.
+- CI now syntactically validates the injected JavaScript and rejects restored unrestricted WebView JavaScript interfaces.
 - Encrypted record corruption and failed persistence cannot silently reset or overwrite data; deletion failures are surfaced.
 - Static APK Inspector foundation: SHA-256, package, version, requested permissions.
 - Play/internal distribution flavors.
