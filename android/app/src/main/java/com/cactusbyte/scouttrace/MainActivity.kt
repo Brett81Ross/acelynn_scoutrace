@@ -22,41 +22,49 @@ class MainActivity : Activity() {
     private val apkPickerCode = 301
     private var pendingSharedText: String? = null
     private var pendingDestructiveConfirmation: android.app.AlertDialog? = null
+    private var activityResumedForConfirmation = false
 
     /**
      * Native confirmation cannot be forged by a script from the trusted WebView origin.
-     * Called only from the serialized native worker; UI buttons themselves are not proof of consent.
+     * Requires an active foreground Activity; cancellation never deletes anything.
      */
     fun confirmDestructiveAction(title: String, explanation: String): Boolean {
         if (android.os.Looper.myLooper() == android.os.Looper.getMainLooper()) return false
         val latch = java.util.concurrent.CountDownLatch(1)
         val approved = java.util.concurrent.atomic.AtomicBoolean(false)
+        val dialogRef = java.util.concurrent.atomic.AtomicReference<android.app.AlertDialog?>()
         runOnUiThread {
-            if (isFinishing || isDestroyed) {
+            if (isFinishing || isDestroyed || !activityResumedForConfirmation) {
                 latch.countDown()
                 return@runOnUiThread
             }
-            val dialog = android.app.AlertDialog.Builder(this)
-                .setTitle(title)
-                .setMessage(explanation)
-                .setPositiveButton("Delete permanently") { _, _ ->
-                    approved.set(true)
+            try {
+                val dialog = android.app.AlertDialog.Builder(this)
+                    .setTitle(title)
+                    .setMessage(explanation)
+                    .setPositiveButton("Delete permanently") { _, _ -> approved.set(true) }
+                    .setNegativeButton("Cancel") { _, _ -> }
+                    .create()
+                dialogRef.set(dialog)
+                pendingDestructiveConfirmation = dialog
+                dialog.setOnDismissListener {
+                    if (pendingDestructiveConfirmation === dialog) pendingDestructiveConfirmation = null
+                    latch.countDown()
                 }
-                .setNegativeButton("Cancel") { _, _ -> }
-                .create()
-            pendingDestructiveConfirmation = dialog
-            dialog.setOnDismissListener {
-                if (pendingDestructiveConfirmation === dialog) pendingDestructiveConfirmation = null
+                dialog.show()
+            } catch (_: Exception) {
+                pendingDestructiveConfirmation = null
                 latch.countDown()
             }
-            dialog.show()
         }
-        return try {
-            latch.await(90, java.util.concurrent.TimeUnit.SECONDS) && approved.get()
+        val completed = try {
+            latch.await(90, java.util.concurrent.TimeUnit.SECONDS)
         } catch (_: InterruptedException) {
             Thread.currentThread().interrupt()
             false
         }
+        if (!completed) runOnUiThread { dialogRef.get()?.dismiss() }
+        return completed && approved.get()
     }
     private val nativeBridge by lazy { ScoutTraceBridge(this) }
     private val nativeExecutor = java.util.concurrent.ThreadPoolExecutor(
@@ -596,6 +604,16 @@ class MainActivity : Activity() {
                 } else req.deny()
             }
         }
+    }
+    override fun onResume() {
+        super.onResume()
+        activityResumedForConfirmation = true
+        if (::webView.isInitialized) webView.onResume()
+    }
+    override fun onPause() {
+        activityResumedForConfirmation = false
+        if (::webView.isInitialized) webView.onPause()
+        super.onPause()
     }
     override fun onDestroy(){pendingDestructiveConfirmation?.dismiss();nativeExecutor.shutdownNow();webView.destroy();super.onDestroy()}
 }
