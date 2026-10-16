@@ -119,11 +119,41 @@ class ScoutTraceBridge(private val context: Context) {
 
     fun privacySummary(): String = PrivacyCenter.summary().toString()
 
-    private fun launch(intent: Intent): Boolean = try {
-        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-        context.startActivity(intent)
-        true
-    } catch (_: Exception) { false }
+    /** Android activities and permission/settings flows launch only from the UI thread. */
+    private fun launch(intent: Intent): Boolean {
+        val activity = context as? MainActivity ?: return false
+        if (android.os.Looper.myLooper() == android.os.Looper.getMainLooper()) {
+            return try {
+                if (activity.isFinishing || activity.isDestroyed) return false
+                activity.startActivity(intent)
+                true
+            } catch (_: Exception) { false }
+        }
+        val result = java.util.concurrent.atomic.AtomicBoolean(false)
+        val stillRequested = java.util.concurrent.atomic.AtomicBoolean(true)
+        val done = java.util.concurrent.CountDownLatch(1)
+        activity.runOnUiThread {
+            try {
+                if (stillRequested.compareAndSet(true, false) &&
+                    !activity.isFinishing && !activity.isDestroyed) {
+                    activity.startActivity(intent)
+                    result.set(true)
+                }
+            } catch (_: Exception) {
+                result.set(false)
+            } finally {
+                done.countDown()
+            }
+        }
+        val completed = try {
+            done.await(10, java.util.concurrent.TimeUnit.SECONDS)
+        } catch (_: InterruptedException) {
+            Thread.currentThread().interrupt()
+            false
+        }
+        if (!completed) stillRequested.set(false)
+        return completed && result.get()
+    }
 
     private fun baselineComparison(current: JSONObject): JSONObject {
         val raw = secure.getString("baseline", null)
