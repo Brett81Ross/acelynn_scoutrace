@@ -305,6 +305,11 @@ class MainActivity : Activity() {
               .scouttrace-diff-filters button:focus-visible{outline:3px solid #58adff;outline-offset:2px}
               .scouttrace-diff-item[hidden]{display:none!important}
               .scouttrace-detail{margin-top:12px;padding:12px;border-radius:12px;background:rgba(43,118,187,.08);border:1px solid rgba(68,137,197,.25)}
+              .scouttrace-permission-count{margin-left:auto;padding-left:10px;font-size:.86rem;opacity:.82}
+              .scouttrace-permission ul{list-style:none;padding:0;margin:8px 0}
+              .scouttrace-permission li{padding:10px 0;border-top:1px solid rgba(95,143,186,.24);overflow-wrap:anywhere}
+              .scouttrace-permission li button{display:block;min-height:44px;margin-top:7px;border-radius:10px;padding:8px 12px;border:1px solid #5491c2;background:rgba(56,136,203,.13);color:inherit;font-weight:650}
+              .scouttrace-permission li button:focus-visible{outline:3px solid #55b5ff;outline-offset:2px}
               .scouttrace-detail summary{cursor:pointer;min-height:42px;display:flex;align-items:center;font-weight:750;color:inherit}
               .scouttrace-detail p{margin:8px 0;line-height:1.55}
               .scouttrace-detail .scouttrace-evidence{overflow-wrap:anywhere;font-size:.88rem}
@@ -424,10 +429,16 @@ class MainActivity : Activity() {
                 const diffContext='<p class="muted">Compared with your locally saved baseline. Visibility can change without an app being installed or removed. Scanner upgrades can also change classifications. Grant changes cover only the Android runtime permissions ScoutTrace observes, not every special-access setting.</p>';
                 const permissionHtml=Object.entries(pm).map(([k,v])=>{
                   const list=Array.isArray(v)?v:[], granted=list.filter(item=>item.granted===true).length;
-                  const names={accessibilityEnabled:'ENABLED ACCESSIBILITY',deviceAdminActive:'ACTIVE DEVICE ADMINS',overlayDeclared:'OVERLAY DECLARATIONS',installPackagesDeclared:'INSTALL REQUEST DECLARATIONS'};
-                  const special={accessibilityEnabled:list.length+' enabled service(s) reported by Android',deviceAdminActive:list.length+' active administrator(s) reported by Android',overlayDeclared:list.length+' app(s) declare overlay access; current AppOps permission is not verified',installPackagesDeclared:list.length+' app(s) declare install-request permission; active access is not verified'};
-                  const detail=special[k]||list.length+' analyzed app(s) request this permission · '+granted+' currently granted as Android reports';
-                  return '<div class="hist"><strong>'+esc(names[k]||k.toUpperCase())+'</strong><div class="muted">'+esc(detail)+'</div></div>';
+                  const names={accessibilityEnabled:'Enabled Accessibility',deviceAdminActive:'Active Device Administrators',overlayDeclared:'Overlay declarations',installPackagesDeclared:'Install-request declarations'};
+                  const special={accessibilityEnabled:list.length+' enabled service(s) reported by Android',deviceAdminActive:list.length+' active administrator(s) reported by Android',overlayDeclared:list.length+' app(s) declare overlay access; active AppOps permission is not verified',installPackagesDeclared:list.length+' app(s) declare install-request capability; actual access is not verified'};
+                  const label=names[k]||k.toUpperCase();
+                  const detail=special[k]||list.length+' analyzed app(s) request this permission · '+granted+' currently granted (as Android reports).';
+                  const rows=list.slice(0,80).map(item=>{
+                    const status=item.granted===true?'Android reports granted or active':item.granted===false?'Requested; not granted':'Declared capability; active access unverified';
+                    return '<li><strong>'+esc(item.name||item.packageName||'App')+'</strong><span class="muted"> — '+esc(status)+'</span><button type="button" class="permissionSettings" data-pkg="'+esc(item.packageName||'')+'">App settings</button></li>';
+                  }).join('');
+                  const omitted=list.length>80?'<p class="muted">Only the first 80 visible apps are listed for this category.</p>':'';
+                  return '<details class="scouttrace-detail scouttrace-permission"><summary>'+esc(label)+' <span class="scouttrace-permission-count">'+list.length+' app(s)</span></summary><p class="muted">'+esc(detail)+'</p>'+(list.length?'<ul>'+rows+'</ul>'+omitted:'<p class="muted">No matching non-system apps are visible to ScoutTrace.</p>')+'</details>';
                 }).join('');
                 const visibleFindings=fs.filter(f=>!(disp[f.packageName]==='IGNORE' && f.level!=='HIGH CAUTION'));
                 const suppressedCount=fs.length-visibleFindings.length;
@@ -451,6 +462,7 @@ class MainActivity : Activity() {
                 }));
                 out.querySelector('#reviewPriority')?.addEventListener('click',()=>out.querySelector('.scouttrace-finding')?.scrollIntoView({block:'center',behavior:'smooth'}));
                 out.querySelectorAll('.appSettings').forEach(x=>x.onclick=async()=>{try{if(await nativeCall('openAppSettings',x.dataset.pkg)!==true)throw new Error('Unavailable');}catch(_){alert('Android app settings could not be opened.');}});
+                out.querySelectorAll('.permissionSettings').forEach(x=>x.onclick=async()=>{try{if(await nativeCall('openAppSettings',x.dataset.pkg)!==true)throw new Error('Unavailable');}catch(_){alert('Android app settings could not be opened.');}});
                 const setClassification=async(button,state,label)=>{
                   button.disabled=true;
                   try{const ok=await nativeCall('setAppDisposition',button.dataset.pkg,state);if(ok!==true)throw new Error('Not saved');button.textContent=label+' ✓';}
