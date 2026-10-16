@@ -237,7 +237,14 @@ class MainActivity : Activity() {
             addCategory(Intent.CATEGORY_OPENABLE)
             type = "*/*"
         }
-        startActivityForResult(intent, apkPickerCode)
+        try {
+            if (!isFinishing && !isDestroyed) startActivityForResult(intent, apkPickerCode)
+        } catch (_: Exception) {
+            android.widget.Toast.makeText(
+                this, "No Android document picker is available for APK inspection.",
+                android.widget.Toast.LENGTH_LONG
+            ).show()
+        }
     }
 
     @Deprecated("Activity result API")
