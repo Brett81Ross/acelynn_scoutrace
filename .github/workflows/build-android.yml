@@ -13,6 +13,12 @@ on:
       - '.github/workflows/build-android.yml'
   workflow_dispatch:
 
+# Only the newest validation change needs a full Android build.
+# Push and PR events for the same source branch share one concurrency group.
+concurrency:
+  group: scouttrace-android-${{ github.workflow }}-${{ github.head_ref || github.ref_name }}
+  cancel-in-progress: true
+
 jobs:
   build:
     runs-on: ubuntu-latest
