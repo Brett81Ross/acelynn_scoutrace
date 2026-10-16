@@ -238,17 +238,29 @@ class MainActivity : Activity() {
         if (requestCode != apkPickerCode || resultCode != RESULT_OK) return
         val uri: Uri = data?.data ?: return
         if (uri.scheme != "content") return
-        Thread {
-            val result = try { ApkInspector(applicationContext).inspect(uri).toString() }
-                catch (e: Exception) { org.json.JSONObject().put("ok", false).put("error", e.message ?: "APK inspection failed").toString() }
-            runOnUiThread {
-                val current = webView.url?.let(Uri::parse)
-                if (!isFinishing && !isDestroyed && current?.scheme == "https" && current.host == trustedHost &&
-                    (current.port == -1 || current.port == 443)) {
-                    webView.evaluateJavascript("window.dispatchEvent(new CustomEvent(\"scouttrace-apk-result\",{detail:"+org.json.JSONObject.quote(result)+"}));", null)
+        try {
+            nativeExecutor.execute {
+                val result = try {
+                    ApkInspector(applicationContext).inspect(uri).toString()
+                } catch (e: Exception) {
+                    // Do not expose document-provider paths, private URI data, or exception details to web content.
+                    val explanation = if (e is IllegalArgumentException &&
+                        e.message?.contains("size limit") == true)
+                        "Selected APK exceeds the 256 MB inspection limit."
+                    else "Selected APK could not be safely read or parsed."
+                    JSONObject().put("ok", false).put("error", explanation).toString()
+                }
+                runOnUiThread {
+                    val current = webView.url?.let(Uri::parse)
+                    if (!isFinishing && !isDestroyed && current?.scheme == "https" && current.host == trustedHost &&
+                        (current.port == -1 || current.port == 443)) {
+                        webView.evaluateJavascript("window.dispatchEvent(new CustomEvent(\"scouttrace-apk-result\",{detail:"+JSONObject.quote(result)+"}));", null)
+                    }
                 }
             }
-        }.start()
+        } catch (_: java.util.concurrent.RejectedExecutionException) {
+            android.widget.Toast.makeText(this, "ScoutTrace is busy. Try APK inspection again.", android.widget.Toast.LENGTH_LONG).show()
+        }
     }
 
     private fun injectPhoneSecuritySweep() {
