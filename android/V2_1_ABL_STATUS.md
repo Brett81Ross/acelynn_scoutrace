@@ -28,6 +28,12 @@ Validation branch only. No production deployment is authorized by this document.
 - Security patch date advisories use date parsing and a 180-day review threshold, without claiming an old patch date indicates malware.
 - Native investigation UI now waits for asynchronously rendered web content, and received Android share text is queued until local Scam Review can receive it.
 - CI now syntactically validates the injected JavaScript and rejects restored unrestricted WebView JavaScript interfaces.
+- Native Android confirmation is now mandatory before clearing encrypted history or app classifications; web-only prompts cannot authorize deletion.
+- Android-origin and safe external URL checks were tightened, including trusted HTTPS port validation before delayed camera grants.
+- APK file streaming uses a 256 MB cap, bounded zero-read handling, SHA-256 verification, and a serialized worker; document-provider errors are redacted.
+- Permission Matrix sections expand into observed per-app evidence and App Settings actions; Security Diff supports All/App inventory/Access/Risk filters.
+- Settings, uninstall confirmation, and share chooser launch on the Android UI thread with bounded acknowledgement.
+- CI additionally asserts native deletion confirmation, trusted-origin restrictions, the APK copy boundary, and disabled unencrypted backups.
 - Encrypted record corruption and failed persistence cannot silently reset or overwrite data; deletion failures are surfaced.
 - Static APK Inspector foundation: SHA-256, package, version, requested permissions.
 - Play/internal distribution flavors.
