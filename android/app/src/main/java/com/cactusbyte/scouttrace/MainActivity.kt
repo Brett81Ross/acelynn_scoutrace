@@ -269,7 +269,7 @@ class MainActivity : Activity() {
           };
           const nativeCall=(method,...args)=>new Promise((resolve,reject)=>{
             const id='st'+(++nativeSequence);
-            const timeout=setTimeout(()=>{nativePending.delete(id);reject(new Error('Native operation timed out'));},60000);
+            const timeout=setTimeout(()=>{nativePending.delete(id);reject(new Error('Native operation timed out'));},method==='clearSecurityHistory'||method==='clearAppDispositions'?110000:60000);
             nativePending.set(id,{resolve:v=>{clearTimeout(timeout);resolve(v);},reject:e=>{clearTimeout(timeout);reject(e);}});
             try{nativePort.postMessage(JSON.stringify({id,method,args}));}
             catch(e){clearTimeout(timeout);nativePending.delete(id);reject(e);}
@@ -422,19 +422,19 @@ class MainActivity : Activity() {
                 out.querySelectorAll('.uninstallApp').forEach(x=>x.onclick=async()=>{try{if(await nativeCall('requestUninstall',x.dataset.pkg)!==true)throw new Error('Unavailable');}catch(_){alert('Android uninstall confirmation could not be opened. No app was removed by ScoutTrace.');}});
                 document.getElementById('openA11y').onclick=async()=>{try{if(await nativeCall('openAccessibilitySettings')!==true)throw new Error('Unavailable');}catch(_){alert('Android Accessibility Settings could not be opened.');}};
                 document.getElementById('openSecurity').onclick=async()=>{try{if(await nativeCall('openSecuritySettings')!==true)throw new Error('Unavailable');}catch(_){alert('Android Security Settings could not be opened.');}};
-                document.getElementById('clearNativeClassifications').onclick=async()=>{if(!confirm('Remove all saved Trust, Watch and Ignore choices on this device?'))return;try{const ok=await nativeCall('clearAppDispositions');if(ok!==true)throw new Error('Not cleared');alert('Saved classifications cleared. Run a new investigation to refresh the results.');}catch(e){alert('Could not clear saved classifications.');}};
-                document.getElementById('clearNativeHistory').onclick=async()=>{if(!confirm('Clear ScoutTrace baseline and local security timeline?'))return;try{const ok=await nativeCall('clearSecurityHistory');if(ok!==true)throw new Error('Not cleared');out.innerHTML='<div class="notice">Local ScoutTrace security data cleared.</div>';}catch(e){alert('Could not clear local security data.');}}
+                document.getElementById('clearNativeClassifications').onclick=async()=>{/* Native Android confirmation is mandatory; a web confirmation alone is insufficient. */try{const ok=await nativeCall('clearAppDispositions');if(ok!==true)throw new Error('Cancelled or unavailable');alert('Saved classifications cleared. Run a new investigation to refresh the results.');}catch(e){alert('Could not clear saved classifications.');}};
+                document.getElementById('clearNativeHistory').onclick=async()=>{/* Native Android confirmation is mandatory; a web confirmation alone is insufficient. */try{const ok=await nativeCall('clearSecurityHistory');if(ok!==true)throw new Error('Cancelled or unavailable');out.innerHTML='<div class="notice">Local ScoutTrace security data cleared.</div>';}catch(e){alert('Could not clear local security data.');}}
               }catch(e){
                 out.innerHTML='<div class="status review">INCOMPLETE</div><p class="muted">Investigation could not complete. ScoutTrace has not declared the device safe or unsafe.</p><p class="muted">If locally stored encrypted records have become unreadable, you can choose to erase only the affected category below. These actions cannot be undone.</p><div class="acts"><button type="button" id="retryInvestigation">Try Again</button><button type="button" id="recoverHistory">Erase Local History / Baseline</button><button type="button" id="recoverClassifications">Erase App Classifications</button></div>';
                 out.querySelector('#retryInvestigation').onclick=()=>document.getElementById('nativePhoneScan')?.click();
                 out.querySelector('#recoverHistory').onclick=async()=>{
-                  if(!confirm('Permanently erase the encrypted baseline, timeline and fingerprint stored on this device?'))return;
-                  try{if(await nativeCall('clearSecurityHistory')!==true)throw new Error('Not deleted');out.innerHTML='<p class="muted">Local investigation history erased. You may start a fresh scan.</p>';}
+                  /* Native Android confirmation is mandatory; a web confirmation alone is insufficient. */
+                  try{if(await nativeCall('clearSecurityHistory')!==true)throw new Error('Cancelled or unavailable');out.innerHTML='<p class="muted">Local investigation history erased. You may start a fresh scan.</p>';}
                   catch(_){alert('Deletion failed. Existing records may remain on this device.');}
                 };
                 out.querySelector('#recoverClassifications').onclick=async()=>{
-                  if(!confirm('Permanently erase all saved Trust, Watch and Ignore classifications on this device?'))return;
-                  try{if(await nativeCall('clearAppDispositions')!==true)throw new Error('Not deleted');out.innerHTML='<p class="muted">Saved app classifications erased. Run a new investigation to continue.</p>';}
+                  /* Native Android confirmation is mandatory; a web confirmation alone is insufficient. */
+                  try{if(await nativeCall('clearAppDispositions')!==true)throw new Error('Cancelled or unavailable');out.innerHTML='<p class="muted">Saved app classifications erased. Run a new investigation to continue.</p>';}
                   catch(_){alert('Deletion failed. Existing classifications may remain on this device.');}
                 };
               }
