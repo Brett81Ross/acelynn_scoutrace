@@ -84,10 +84,13 @@ class MainActivity : Activity() {
         webView.webViewClient = object : WebViewClient() {
             override fun shouldOverrideUrlLoading(view: WebView, request: android.webkit.WebResourceRequest): Boolean {
                 val uri = request.url
-                if (uri.scheme == "https" && uri.host == trustedHost && (uri.port == -1 || uri.port == 443)) return false
-                if (request.isForMainFrame) {
-                    try { startActivity(Intent(Intent.ACTION_VIEW, uri)) } catch (_: Exception) { }
+                if (uri.scheme == "https" && uri.host == trustedHost &&
+                    (uri.port == -1 || uri.port == 443)) return false
+                if (request.isForMainFrame && uri.scheme in setOf("http", "https", "mailto", "tel")) {
+                    val external = Intent(Intent.ACTION_VIEW, uri).addCategory(Intent.CATEGORY_BROWSABLE)
+                    try { startActivity(external) } catch (_: Exception) { }
                 }
+                // Refuse external file/content/intent/javascript schemes and untrusted subframes.
                 return true
             }
             override fun onReceivedSslError(view: WebView, handler: android.webkit.SslErrorHandler, error: android.net.http.SslError) {
@@ -116,7 +119,11 @@ class MainActivity : Activity() {
                 runOnUiThread {
                     if (request.origin.scheme != "https" || request.origin.host != trustedHost ||
                         (request.origin.port != -1 && request.origin.port != 443) ||
-                        webView.url?.let { Uri.parse(it).scheme == "https" && Uri.parse(it).host == trustedHost } != true) {
+                        webView.url?.let {
+                            val page = Uri.parse(it)
+                            page.scheme == "https" && page.host == trustedHost &&
+                                (page.port == -1 || page.port == 443)
+                        } != true) {
                         request.deny(); return@runOnUiThread
                     }
                     if (request.resources.contains(PermissionRequest.RESOURCE_VIDEO_CAPTURE)) {
@@ -536,7 +543,8 @@ class MainActivity : Activity() {
                 val trusted = current?.scheme == "https" && current.host == trustedHost &&
                     (current.port == -1 || current.port == 443)
                 if (grantResults.firstOrNull() == PackageManager.PERMISSION_GRANTED &&
-                    trusted && req.origin.scheme == "https" && req.origin.host == trustedHost) {
+                    trusted && req.origin.scheme == "https" && req.origin.host == trustedHost &&
+                    (req.origin.port == -1 || req.origin.port == 443)) {
                     req.grant(arrayOf(PermissionRequest.RESOURCE_VIDEO_CAPTURE))
                 } else req.deny()
             }
