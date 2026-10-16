@@ -21,6 +21,43 @@ class MainActivity : Activity() {
     private val trustedHost = "acelynn-scoutrace.vercel.app"
     private val apkPickerCode = 301
     private var pendingSharedText: String? = null
+    private var pendingDestructiveConfirmation: android.app.AlertDialog? = null
+
+    /**
+     * Native confirmation cannot be forged by a script from the trusted WebView origin.
+     * Called only from the serialized native worker; UI buttons themselves are not proof of consent.
+     */
+    fun confirmDestructiveAction(title: String, explanation: String): Boolean {
+        if (android.os.Looper.myLooper() == android.os.Looper.getMainLooper()) return false
+        val latch = java.util.concurrent.CountDownLatch(1)
+        val approved = java.util.concurrent.atomic.AtomicBoolean(false)
+        runOnUiThread {
+            if (isFinishing || isDestroyed) {
+                latch.countDown()
+                return@runOnUiThread
+            }
+            val dialog = android.app.AlertDialog.Builder(this)
+                .setTitle(title)
+                .setMessage(explanation)
+                .setPositiveButton("Delete permanently") { _, _ ->
+                    approved.set(true)
+                }
+                .setNegativeButton("Cancel") { _, _ -> }
+                .create()
+            pendingDestructiveConfirmation = dialog
+            dialog.setOnDismissListener {
+                if (pendingDestructiveConfirmation === dialog) pendingDestructiveConfirmation = null
+                latch.countDown()
+            }
+            dialog.show()
+        }
+        return try {
+            latch.await(90, java.util.concurrent.TimeUnit.SECONDS) && approved.get()
+        } catch (_: InterruptedException) {
+            Thread.currentThread().interrupt()
+            false
+        }
+    }
     private val nativeBridge by lazy { ScoutTraceBridge(this) }
     private val nativeExecutor = java.util.concurrent.ThreadPoolExecutor(
         1, 1, 0L, java.util.concurrent.TimeUnit.MILLISECONDS,
@@ -505,5 +542,5 @@ class MainActivity : Activity() {
             }
         }
     }
-    override fun onDestroy(){nativeExecutor.shutdownNow();webView.destroy();super.onDestroy()}
+    override fun onDestroy(){pendingDestructiveConfirmation?.dismiss();nativeExecutor.shutdownNow();webView.destroy();super.onDestroy()}
 }
