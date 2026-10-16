@@ -10,25 +10,14 @@ import java.io.FileOutputStream
 import java.security.MessageDigest
 
 class ApkInspector(private val context: Context) {
-    private val maxApkBytes = 256L * 1024L * 1024L
     fun inspect(uri: Uri): JSONObject {
+        require(uri.scheme == "content") { "Only user-selected documents can be inspected." }
         val temp = File.createTempFile("scouttrace_", ".apk", context.cacheDir)
         try {
-            require(uri.scheme == "content") { "Only user-selected documents can be inspected." }
-            val digest = MessageDigest.getInstance("SHA-256")
-            var totalBytes = 0L
-            context.contentResolver.openInputStream(uri).use { input ->
-                requireNotNull(input)
+            val copied = context.contentResolver.openInputStream(uri).use { input ->
+                requireNotNull(input) { "The selected document cannot be opened." }
                 FileOutputStream(temp).use { output ->
-                    val buffer = ByteArray(32768)
-                    while (true) {
-                        val count = input.read(buffer)
-                        if (count <= 0) break
-                        totalBytes += count
-                        require(totalBytes <= maxApkBytes) { "APK exceeds the 256 MB inspection limit." }
-                        digest.update(buffer, 0, count)
-                        output.write(buffer, 0, count)
-                    }
+                    ApkStreamCopy.copy(input, output)
                 }
             }
             @Suppress("DEPRECATION")
@@ -37,7 +26,8 @@ class ApkInspector(private val context: Context) {
             val permissions = info.requestedPermissions?.toList().orEmpty()
             return JSONObject()
                 .put("ok", true)
-                .put("sha256", digest.digest().joinToString("") { "%02x".format(it) })
+                .put("sha256", copied.sha256)
+                .put("sizeBytes", copied.bytes)
                 .put("packageName", info.packageName)
                 .put("versionName", info.versionName ?: "unknown")
                 .put("versionCode", if (android.os.Build.VERSION.SDK_INT >= 28) info.longVersionCode else @Suppress("DEPRECATION") info.versionCode.toLong())
