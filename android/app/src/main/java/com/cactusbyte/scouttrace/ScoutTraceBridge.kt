@@ -50,6 +50,11 @@ class ScoutTraceBridge(private val context: Context) {
     }
 
     fun clearSecurityHistory(): Boolean {
+        val activity = context as? MainActivity ?: return false
+        if (!activity.confirmDestructiveAction(
+                "Delete ScoutTrace security history?",
+                "Permanently erase the local encrypted baseline, observation timeline, and scan fingerprint on this device? Saved app classifications will be kept."
+            )) return false
         secure.remove("timeline", "baseline", "lastFingerprint", "baselineAt")
         return true
     }
@@ -69,6 +74,11 @@ class ScoutTraceBridge(private val context: Context) {
         AppDispositionStore(context).all().toString()
 
     fun clearAppDispositions(): Boolean {
+        val activity = context as? MainActivity ?: return false
+        if (!activity.confirmDestructiveAction(
+                "Delete saved app classifications?",
+                "Permanently erase every Trust, Watch, and Ignore choice on this device? Your baseline and security timeline will be kept."
+            )) return false
         AppDispositionStore(context).clear()
         return true
     }
