@@ -580,12 +580,20 @@ class MainActivity : Activity() {
         // The remote app may mount asynchronously. Hold the text only in page memory
         // until ScoutTrace installs its local-review event handler; never auto-open links.
         webView.evaluateJavascript(
-            "(function(){window.__scoutTracePendingSharedText=" + literal +
+            "(function(){if(location.protocol!=='https:'||location.hostname!==" +
+            JSONObject.quote(trustedHost) +
+            "||(location.port!==''&&location.port!=='443'))return false;" +
+            "window.__scoutTracePendingSharedText=" + literal +
             ";if(window.__scoutTracePhoneSweepInjected){" +
-            "const text=window.__scoutTracePendingSharedText;" +
+            "const shared=window.__scoutTracePendingSharedText;" +
             "delete window.__scoutTracePendingSharedText;" +
-            "window.dispatchEvent(new CustomEvent('scouttrace-shared-text',{detail:text}));}})();"
-        ) { if (pendingSharedText == text) pendingSharedText = null }
+            "window.dispatchEvent(new CustomEvent('scouttrace-shared-text',{detail:shared}));}" +
+            "return true;})()"
+        ) { result ->
+            // evaluateJavascript can fail after navigation or WebView teardown. Keep the
+            // Android-side pending text unless the trusted page acknowledged receiving it.
+            if (result == "true" && pendingSharedText == text) pendingSharedText = null
+        }
     }
 
     override fun onNewIntent(intent: Intent) {
