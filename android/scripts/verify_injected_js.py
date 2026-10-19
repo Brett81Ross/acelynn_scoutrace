@@ -22,6 +22,14 @@ def main() -> int:
     if "WebViewCompat.addWebMessageListener" not in source:
         print("ERROR: Origin-restricted WebView messaging is missing.", file=sys.stderr)
         return 1
+    # Shared Android text must be delivered only to the trusted page and must not be
+    # discarded after a failed evaluateJavascript navigation/teardown race.
+    if "if (result == \"true\" && pendingSharedText == text)" not in source:
+        print("ERROR: Shared text must require trusted-page acknowledgement.", file=sys.stderr)
+        return 1
+    if "location.hostname!==" not in source or "window.__scoutTracePendingSharedText" not in source:
+        print("ERROR: Trusted-origin shared text queue is missing.", file=sys.stderr)
+        return 1
     node = shutil.which("node")
     if node is None:
         print("ERROR: Node.js is required to validate the embedded JavaScript.", file=sys.stderr)
