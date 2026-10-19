@@ -49,6 +49,12 @@ Status: **validation branch only; no production deployment, merge, or Play publi
 36. Baseline upgrade: an older six-permission baseline must not cause false runtime grant changes when ScoutTrace moves to schema v2. A new baseline saved on the same schema must detect actual permission grants and special declarations. The v3 fingerprint must not emit an upgrade-only timeline entry.
 37. Play policy: confirm GET_SERVICES is only a query flag (no new Android permission), Play flavor still lacks QUERY_ALL_PACKAGES and only labels visible apps.
 
+38. Saved-baseline correlation: grant microphone/camera/location on a visible test app after saving a baseline; verify newly observed grants appear as baseline-relative review (not use evidence or spyware proof). Revocation alone must not become a new-access alert.
+39. Special declarations: update a QA APK to declare a notification listener, overlay, or VPN binding without enabling it. Verify context-only correlation and explicit App Info review guidance, never an active-access claim.
+40. Priority ordering: HIGH CAUTION still precedes ELEVATED and REVIEW; within equal severity newly observed privileged access sorts ahead of unverified declaration context. WATCH cannot move a lower-severity finding ahead of HIGH CAUTION; IGNORE cannot hide HIGH CAUTION.
+41. Remediation: settings guidance and user approval only. When suspected abuse or stalking makes changes risky, review safety-planning language. No silent uninstall, revocation or background activity.
+42. Missing baseline or Android-hidden package: show no invented correlated change. Observation timestamps are scanning timestamps, not estimated when an Android permission changed.
+
 ## Release gate
 CI compilation, unit tests, lint, APK/AAB and manifest checks are **necessary but not sufficient**. Device evidence (screenshots, Android version, test steps, results) and manual review of the ten-screen design contract are required. No device QA is claimed by this document.
 

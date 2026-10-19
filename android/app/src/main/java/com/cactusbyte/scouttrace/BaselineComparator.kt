@@ -61,6 +61,12 @@ object BaselineComparator {
                     event.put("grantsAdded", JSONArray((newGrants - oldGrants).sorted()))
                         .put("grantsRevoked", JSONArray((oldGrants - newGrants).sorted()))
                 }
+                if ((0 until fields.length()).any { fields.optString(it) == "declaredSpecialAccess" }) {
+                    val oldDeclarations = strings(old.optJSONArray("declaredSpecialAccess"))
+                    val nowDeclarations = strings(now.optJSONArray("declaredSpecialAccess"))
+                    event.put("specialDeclarationsAdded",JSONArray((nowDeclarations - oldDeclarations).sorted()))
+                        .put("specialDeclarationsRemoved",JSONArray((oldDeclarations - nowDeclarations).sorted()))
+                }
                 val enabled = JSONArray()
                 val disabled = JSONArray()
                 listOf("accessibilityEnabled", "deviceAdminActive").forEach { field ->

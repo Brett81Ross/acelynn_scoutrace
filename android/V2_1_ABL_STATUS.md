@@ -66,6 +66,15 @@ Validation branch only. No production deployment is authorized by this document.
 - Play flavor retains restricted package visibility. No new permissions are requested by ScoutTrace.
 - Unit regression tests cover Android API gates, partial-media semantics, service declarations and baseline/fingerprint migration. Device QA remains required.
 
+## Saved-baseline evidence correlation (validation only)
+- New BaselineChangeCorrelation correlates Android-reported newly enabled access, sensitive runtime grants, and special-access declarations from an existing trusted baseline. No baseline means no inferred change.
+- Priorities retain app severity first, then baseline change significance, then explicit WATCH preferences.
+- Declared services and AppOps capabilities remain context-only; runtime grants do not imply permissions were used.
+- Contextual remediation links users to Android settings and includes personal-safety considerations before removing potentially monitoring-related apps.
+- Correlation is one event per visible app, has no fabricated activation time, and does not independently change the underlying malware assessment.
+- Pure JVM regression tests cover correlation precedence, missing observations, declaration-only alerts, revocations, and non-destructive remediation.
+- Physical-device verification remains open; no production release authorized.
+
 ## Partially implemented / needs completion
 - Permission Matrix special-access categories.
 - Trusted / Watch / Ignore states are stored; Ignore/Reset are exposed in UI. Ignored lower-priority findings are hidden from display and priority callout, while HIGH CAUTION remains visible. Watch findings are prioritized within the same severity tier, with HIGH CAUTION always ahead of lower severity; device QA remains open.
