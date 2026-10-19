@@ -431,8 +431,10 @@ class MainActivity : Activity() {
                   ...(b.metadataChanges||[]).map(x=>{
                     const labels=(x.fields||[]).map(k=>fieldNames[k]||k);
                     const granted=(x.grantsAdded||[]).map(permissionName),revoked=(x.grantsRevoked||[]).map(permissionName);
+                    const activeOn=(x.accessEnabled||[]).map(k=>fieldNames[k]||k);
+                    const activeOff=(x.accessDisabled||[]).map(k=>fieldNames[k]||k);
                     const access=(x.fields||[]).some(k=>['requestedPermissions','grantedRuntimePermissions','overlayDeclared','accessibilityEnabled','deviceAdminActive'].includes(k));
-                    return {title:'App access or configuration changed',category:access?'permissions':'apps',detail:x.packageName+' · '+labels.join(', ')+(granted.length?' · Now granted: '+granted.join(', '):'')+(revoked.length?' · No longer granted: '+revoked.join(', '):'')};
+                    return {title:'App access or configuration changed',category:access?'permissions':'apps',detail:x.packageName+' · '+labels.join(', ')+(granted.length?' · Now granted: '+granted.join(', '):'')+(revoked.length?' · No longer granted: '+revoked.join(', '):'')+(activeOn.length?' · Now observed active: '+activeOn.join(', '):'')+(activeOff.length?' · No longer observed active: '+activeOff.join(', '):'')};
                   })
                 ]:[];
                 const visibleDiff=diffItems.slice(0,40);
@@ -441,7 +443,7 @@ class MainActivity : Activity() {
                 const diffHtml=diffFilters+(visibleDiff.length?
                   visibleDiff.map(x=>'<div class="hist scouttrace-diff-item" data-diff-category="'+esc(x.category)+'"><strong>'+esc(x.title)+'</strong><div class="muted">'+esc(x.detail)+'</div></div>').join(''):
                   '<div class="hist"><div class="muted">'+esc(b.exists?'No observed changes in available baseline fields.':'Save a trusted baseline to begin tracking observed changes.')+'</div></div>');
-                const diffContext='<p class="muted">Compared with your locally saved baseline. Visibility can change without an app being installed or removed. Scanner upgrades can also change classifications. Grant changes cover only the Android runtime permissions ScoutTrace observes, not every special-access setting.</p>';
+                const diffContext=(b.assessmentModelChanged?'<div class="notice"><b>Assessment rules changed:</b> ScoutTrace withheld old-versus-new risk-score changes to avoid a false alert. App observations are still compared.</div>':'')+'<p class="muted">Compared with your locally saved baseline. Visibility can change without an app being installed or removed. Scanner upgrades can also change classifications. Grant changes cover only the Android runtime permissions ScoutTrace observes, not every special-access setting.</p>';
                 const permissionHtml=Object.entries(pm).map(([k,v])=>{
                   const list=Array.isArray(v)?v:[], granted=list.filter(item=>item.granted===true).length;
                   const names={accessibilityEnabled:'Enabled Accessibility',deviceAdminActive:'Active Device Administrators',overlayDeclared:'Overlay declarations',installPackagesDeclared:'Install-request declarations'};

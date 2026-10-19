@@ -46,6 +46,15 @@ Validation branch only. No production deployment is authorized by this document.
 - OEM-aware device profile foundation for Samsung, Pixel, Motorola, and generic Android fallback.
 - Explicit disabled-state model for external threat reputation so the UI cannot imply a lookup occurred.
 
+## Detection and correlation atomic batch (validation only)
+- Assessment policy v2 prevents manifest-only and install-origin-only signals from becoming ELEVATED; HIGH CAUTION requires two Android-reported active privileges.
+- Decisions expose the policy rule plus counts of active privileges, manifest declarations, and contextual indicators. This is deterministic triage, never a malware verdict.
+- Versioned baseline comparisons withhold risk-score changes across policy upgrades while continuing to display observable permission and app metadata changes.
+- Diff records when Accessibility or Device Administrator access is newly observed relative to a saved baseline; timestamps are not inferred activation times.
+- Versioned observation-only fingerprint excludes derived scores and classifications, preventing scanner policy changes from creating synthetic timeline events. The first v2 scan establishes an observation checkpoint.
+- Encrypted dispositions and timelines are checked before advancing an observation checkpoint, preserving fail-closed data integrity.
+- Includes deterministic policy, fingerprint and migration regression tests. Physical device verification remains open.
+
 ## Partially implemented / needs completion
 - Permission Matrix special-access categories.
 - Trusted / Watch / Ignore states are stored; Ignore/Reset are exposed in UI. Ignored lower-priority findings are hidden from display and priority callout, while HIGH CAUTION remains visible. Watch findings are prioritized within the same severity tier, with HIGH CAUTION always ahead of lower severity; device QA remains open.

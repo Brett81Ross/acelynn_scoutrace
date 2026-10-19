@@ -6,7 +6,6 @@ import android.net.Uri
 import android.provider.Settings
 import org.json.JSONArray
 import org.json.JSONObject
-import java.security.MessageDigest
 
 class ScoutTraceBridge(private val context: Context) {
     private val prefs = context.getSharedPreferences("scouttrace_security", Context.MODE_PRIVATE)
@@ -25,16 +24,21 @@ class ScoutTraceBridge(private val context: Context) {
         val result = DeviceSecurityScanner(context).scan()
         val baseline = baselineComparison(result)
         baseline.put("narrative", BaselineNarrative.summarize(baseline))
-        val fingerprint = fingerprint(result)
-        val old = secure.getString("lastFingerprint", null)
-        if (old != null && old != fingerprint) {
+        // Verify both encrypted stores before changing the observation checkpoint.
+        // A corrupt disposition or timeline must not silently advance scan history.
+        val dispositions = AppDispositionStore(context).all()
+        val priorTimeline = timeline()
+        val fingerprint = ObservedAppFingerprint.calculate(result)
+        val old = secure.getString("observationFingerprintV2", null)
+        val observationsChanged = old != null && old != fingerprint
+        if (observationsChanged) {
             addTimelineEvent("Observed visible-app state changed",
                 result.optString("level", "REVIEW"), SecurityChangeNarrative.describe(baseline))
         }
-        secure.putString("lastFingerprint", fingerprint)
+        secure.putString("observationFingerprintV2", fingerprint)
         result.put("baseline", baseline)
-        result.put("timeline", timeline())
-        result.put("dispositions", AppDispositionStore(context).all())
+        result.put("timeline", if (observationsChanged) timeline() else priorTimeline)
+        result.put("dispositions", dispositions)
         result.put("narrative", InvestigationNarrative.build(result))
         return result.toString()
     }
@@ -55,7 +59,7 @@ class ScoutTraceBridge(private val context: Context) {
                 "Delete ScoutTrace security history?",
                 "Permanently erase the local encrypted baseline, observation timeline, and scan fingerprint on this device? Saved app classifications will be kept."
             )) return false
-        secure.remove("timeline", "baseline", "lastFingerprint", "baselineAt")
+        secure.remove("timeline", "baseline", "lastFingerprint", "observationFingerprintV2", "baselineAt")
         return true
     }
 
@@ -164,28 +168,6 @@ class ScoutTraceBridge(private val context: Context) {
             // A failed comparison is not evidence that the saved baseline disappeared.
             throw IllegalStateException("Saved baseline could not be compared; refusing to hide or overwrite it", e)
         }
-    }
-
-    private fun fingerprint(result: JSONObject): String {
-        val risks = result.optJSONArray("appRisks") ?: JSONArray()
-        val stable = (0 until risks.length()).mapNotNull { i ->
-            risks.optJSONObject(i)?.let { item ->
-                listOf(
-                    item.optString("packageName"),
-                    item.optString("level"),
-                    item.optInt("score").toString(),
-                    item.optString("versionCode"),
-                    item.optString("installer"),
-                    item.optString("requestedPermissions"),
-                    item.optString("grantedRuntimePermissions"),
-                    item.optString("overlayDeclared"),
-                    item.optString("accessibilityEnabled"),
-                    item.optString("deviceAdminActive")
-                ).joinToString("|")
-            }
-        }.sorted().joinToString("\n")
-        val digest = MessageDigest.getInstance("SHA-256").digest(stable.toByteArray())
-        return digest.joinToString("") { "%02x".format(it) }
     }
 
     private fun addTimelineEvent(title: String, level: String, detail: String) {

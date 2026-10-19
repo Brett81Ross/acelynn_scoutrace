@@ -14,7 +14,8 @@ class BaselineComparatorTest {
             .apply { if (permissions != null) put("grantedRuntimePermissions", permissions) }
 
     private fun snapshot(vararg apps: JSONObject) =
-        JSONObject().put("level", "REVIEW").put("appRisks", JSONArray().apply { apps.forEach { put(it) } })
+        JSONObject().put("level", "REVIEW").put("assessmentModelVersion", AppRiskPolicy.VERSION)
+            .put("appRisks", JSONArray().apply { apps.forEach { put(it) } })
 
     @Test fun permissionGrantAndRevocationAreNamedExactly() {
         val before = snapshot(app("com.example.app", JSONArray().put("android.permission.CAMERA")
@@ -65,5 +66,27 @@ class BaselineComparatorTest {
         assertEquals("ELEVATED", change.getString("toLevel"))
         assertEquals(2, change.getInt("fromScore"))
         assertEquals(7, change.getInt("toScore"))
+    }
+
+    @Test fun assessmentUpgradeCannotFabricateRiskChange() {
+        val prior = snapshot(app("com.example.app")).put("assessmentModelVersion", 1)
+        val reclassified = app("com.example.app").put("level", "ELEVATED").put("score", 9)
+        val result = BaselineComparator.compare(prior, snapshot(reclassified), 42)
+        assertTrue(result.getBoolean("assessmentModelChanged"))
+        assertFalse(result.getBoolean("levelChanged"))
+        assertEquals(0, result.getJSONArray("riskChanges").length())
+        assertEquals(0, result.getJSONArray("metadataChanges").length())
+    }
+
+    @Test fun privilegedAccessTurningOnIsNamedAsBaselineRelativeObservation() {
+        val prior = snapshot(app("com.example.app").put("accessibilityEnabled", false)
+            .put("deviceAdminActive", false))
+        val next = snapshot(app("com.example.app").put("accessibilityEnabled", true)
+            .put("deviceAdminActive", false))
+        val result = BaselineComparator.compare(prior, next, 99)
+        val event = result.getJSONArray("metadataChanges").getJSONObject(0)
+        assertEquals("accessibilityEnabled", event.getJSONArray("accessEnabled").getString(0))
+        assertFalse(event.has("installedAt"))
+        assertFalse(result.getBoolean("assessmentModelChanged"))
     }
 }

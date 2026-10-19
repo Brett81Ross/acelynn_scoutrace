@@ -18,13 +18,18 @@ object BaselineComparator {
         val current = appMap(after.optJSONArray("appRisks"))
         val beforePkgs = previous.keys
         val afterPkgs = current.keys
+        // Existing baselines may have been classified under a different policy.
+        // Never portray an algorithm change alone as a new security incident.
+        val priorModel = before.optInt("assessmentModelVersion", -1)
+        val currentModel = after.optInt("assessmentModelVersion", -1)
+        val modelChanged = priorModel <= 0 || currentModel <= 0 || priorModel != currentModel
         val risks = JSONArray()
         val metadata = JSONArray()
         (beforePkgs intersect afterPkgs).sorted().forEach { pkg ->
             val old = previous.getValue(pkg)
             val now = current.getValue(pkg)
-            if (old.optString("level") != now.optString("level") ||
-                old.optInt("score") != now.optInt("score")) {
+            if (!modelChanged && (old.optString("level") != now.optString("level") ||
+                old.optInt("score") != now.optInt("score"))) {
                 risks.put(JSONObject().put("packageName", pkg)
                     .put("fromLevel", old.optString("level"))
                     .put("toLevel", now.optString("level"))
@@ -47,6 +52,16 @@ object BaselineComparator {
                     event.put("grantsAdded", JSONArray((newGrants - oldGrants).sorted()))
                         .put("grantsRevoked", JSONArray((oldGrants - newGrants).sorted()))
                 }
+                val enabled = JSONArray()
+                val disabled = JSONArray()
+                listOf("accessibilityEnabled", "deviceAdminActive").forEach { field ->
+                    if (old.has(field) && now.has(field) &&
+                        old.optBoolean(field) != now.optBoolean(field)) {
+                        if (now.optBoolean(field)) enabled.put(field) else disabled.put(field)
+                    }
+                }
+                if (enabled.length() > 0) event.put("accessEnabled", enabled)
+                if (disabled.length() > 0) event.put("accessDisabled", disabled)
                 metadata.put(event)
             }
         }
@@ -56,7 +71,8 @@ object BaselineComparator {
             .put("removedApps", JSONArray((beforePkgs - afterPkgs).sorted()))
             .put("riskChanges", risks)
             .put("metadataChanges", metadata)
-            .put("levelChanged", before.optString("level") != after.optString("level"))
+            .put("assessmentModelChanged", modelChanged)
+            .put("levelChanged", !modelChanged && before.optString("level") != after.optString("level"))
     }
 
     private fun appMap(array: JSONArray?): Map<String, JSONObject> {

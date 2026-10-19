@@ -37,6 +37,11 @@ Status: **validation branch only; no production deployment, merge, or Play publi
 26. Android Activity lifecycle: settings, uninstall, share-sheet, and picker actions must launch on the UI thread. Verify rapid taps, backgrounding during dialogs, unavailable handlers, and activity recreation. Invalid external file/content/intent/javascript links must not launch other apps; allowlist HTTPS, HTTP, mailto and tel only.
 27. CI contract: confirm the injected JavaScript syntax test AND native security-boundary contract run before unit tests and policy gates; deliberately break each guard in a private test branch to verify it fails closed (do not weaken the production controls).
 
+28. Assessment v2 truthfulness: manifest-only overlay/install-request declarations, alternative installer, and a debuggable flag must not produce ELEVATED or HIGH CAUTION; one active Accessibility or Device Administrator plus a distinct supporting signal may be ELEVATED; both active privileges together require review but do not establish malware.
+29. Policy upgrade: install over an older baseline and confirm risk-level comparisons are suppressed when policy versions differ, while granted runtime permission changes, newly enabled privileges, and app-visibility differences remain visible. No false "new malware" timeline event may occur from a scoring-rule change alone.
+30. Observation fingerprint: confirm that reordering package/permission arrays or reclassifying risk does not trigger a timeline change; changing an Android-reported permission, installer, app version, or active privilege does trigger one on a subsequent scan after the v2 checkpoint.
+31. Integrity: corrupt encrypted classifications or timeline and verify failed scan does not advance the new fingerprint or erase the stored evidence.
+
 ## Release gate
 CI compilation, unit tests, lint, APK/AAB and manifest checks are **necessary but not sufficient**. Device evidence (screenshots, Android version, test steps, results) and manual review of the ten-screen design contract are required. No device QA is claimed by this document.
 

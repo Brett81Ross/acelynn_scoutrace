@@ -10,8 +10,14 @@ object BaselineNarrative {
         val removed = comparison.optJSONArray("removedApps") ?: JSONArray()
         val riskChanges = comparison.optJSONArray("riskChanges") ?: JSONArray()
         val metadata = comparison.optJSONArray("metadataChanges") ?: JSONArray()
+        val modelChanged = comparison.optBoolean("assessmentModelChanged")
+        val enabledPrivileges = (0 until metadata.length()).sumOf {
+            metadata.optJSONObject(it)?.optJSONArray("accessEnabled")?.length() ?: 0
+        }
         val total = added.length() + removed.length() + riskChanges.length() + metadata.length()
         val headline = when {
+            enabledPrivileges > 0 -> "Previously unobserved active app access needs review"
+            total == 0 && modelChanged -> "Assessment rules updated; observed fields still compared"
             total == 0 -> "No material baseline changes detected"
             metadata.length() > 0 -> metadata.length().toString() + " app configuration change(s)"
             riskChanges.length() > 0 -> riskChanges.length().toString() + " app risk classification change(s)"
@@ -20,7 +26,9 @@ object BaselineNarrative {
             else -> removed.length().toString() + " previously visible app(s) no longer seen"
         }
         return JSONObject().put("changed", total > 0).put("changeCount", total).put("headline", headline)
-            .put("newVisibleApps", added.length()).put("noLongerVisibleApps", removed.length()).put("riskChanges", riskChanges.length()).put("metadataChanges", metadata.length())
-            .put("detail", "Baseline changes are observations for review. Android package visibility can also affect which apps ScoutTrace can see.")
+            .put("newVisibleApps", added.length()).put("noLongerVisibleApps", removed.length()).put("riskChanges", riskChanges.length()).put("metadataChanges", metadata.length()).put("newlyEnabledPrivileges", enabledPrivileges)
+            .put("assessmentModelChanged", modelChanged)
+            .put("detail", "Baseline differences are observations for review, not the time a permission changed. Android package visibility affects which apps ScoutTrace sees." +
+                if (modelChanged) " Assessment policy changed since this baseline; older risk scores were not compared." else "")
     }
 }

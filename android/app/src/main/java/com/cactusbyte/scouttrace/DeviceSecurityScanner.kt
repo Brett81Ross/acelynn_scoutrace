@@ -72,25 +72,21 @@ class DeviceSecurityScanner(private val context: Context) {
             if(overlay) special("overlayDeclared", "DECLARED_ACCESS_UNVERIFIED", null)
             if(canInstall) special("installPackagesDeclared", "DECLARED_ACCESS_UNVERIFIED", null)
 
-            var score=0
-            val reasons=mutableListOf<String>()
-            if(side){score+=2;reasons+="installer differs from recognized store identifiers; not proof of sideloading"}
-            if(enabledA11y){score+=4;reasons+="enabled Accessibility service"}
-            if(admin){score+=4;reasons+="active Device Administrator"}
-            if(overlay){score+=2;reasons+="declares overlay permission; active access not verified"}
-            if(canInstall){score+=2;reasons+="declares package-install request permission; active ability not verified"}
-            if(debuggable){score+=1;reasons+="debuggable build"}
-            if(enabledA11y && (overlay || canInstall || side)) score+=3
-            val evidence=EvidenceModel.assess(side,enabledA11y,admin,overlay,canInstall,debuggable)
-            val correlated=evidence.optBoolean("correlated")
-            val indicatorCount=evidence.optInt("indicatorCount")
-            val level=when{
-                correlated && score>=7->"HIGH CAUTION"
-                indicatorCount>=2 && score>=4->"ELEVATED"
-                score>=1->"REVIEW"
-                else->"CLEAR"
-            }
-            appRisks.put(JSONObject().put("name",appLabel(pkg)).put("packageName",pkg.packageName).put("level",level).put("score",score).put("installer",installer?:"unknown").put("installSourceStatus",source.name).put("versionCode",if(Build.VERSION.SDK_INT>=28)pkg.longVersionCode else @Suppress("DEPRECATION") pkg.versionCode.toLong()).put("requestedPermissions",JSONArray(requested.sorted()))
+            val decision = AppRiskPolicy.evaluate(AppRiskPolicy.Signals(
+                otherInstaller = side,
+                accessibilityEnabled = enabledA11y,
+                deviceAdminActive = admin,
+                overlayDeclared = overlay,
+                installRequestsDeclared = canInstall,
+                debuggable = debuggable
+            ))
+            val evidence = EvidenceModel.assess(side,enabledA11y,admin,overlay,canInstall,debuggable)
+            val level = decision.level
+            val reasons = decision.reasons
+            appRisks.put(JSONObject().put("name",appLabel(pkg)).put("packageName",pkg.packageName).put("level",level).put("score",decision.score).put("assessmentRule",decision.rule)
+                .put("activePrivilegeCount",decision.activePrivilegeCount)
+                .put("declaredCapabilityCount",decision.declaredCapabilityCount)
+                .put("contextIndicatorCount",decision.contextIndicatorCount).put("installer",installer?:"unknown").put("installSourceStatus",source.name).put("versionCode",if(Build.VERSION.SDK_INT>=28)pkg.longVersionCode else @Suppress("DEPRECATION") pkg.versionCode.toLong()).put("requestedPermissions",JSONArray(requested.sorted()))
                 .put("grantedRuntimePermissions", JSONArray(buckets.values.filter {
                     it in requested && pm.checkPermission(it, pkg.packageName) == PackageManager.PERMISSION_GRANTED
                 }.sorted()))
@@ -114,6 +110,7 @@ class DeviceSecurityScanner(private val context: Context) {
         val highest=when{findings.any{it.level=="HIGH CAUTION"}->"HIGH CAUTION";findings.any{it.level=="ELEVATED"}->"ELEVATED";findings.any{it.level=="REVIEW"}->"REVIEW";else->"CLEAR"}
         return JSONObject()
             .put("level",highest)
+            .put("assessmentModelVersion", AppRiskPolicy.VERSION)
             .put("summary","Analyzed ${appRisks.length()} non-system apps from ${packages.size} Android-visible packages. Findings are indicators for review, not proof of malware.")
             .put("visibility",VisibilityStatus(context).describe(packages.size))
             .put("coverage",ScanCoverage.packageCoverage(packages.size))
