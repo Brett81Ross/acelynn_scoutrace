@@ -29,13 +29,13 @@ class ScoutTraceBridge(private val context: Context) {
         val dispositions = AppDispositionStore(context).all()
         val priorTimeline = timeline()
         val fingerprint = ObservedAppFingerprint.calculate(result)
-        val old = secure.getString("observationFingerprintV2", null)
+        val old = secure.getString("observationFingerprintV3", null)
         val observationsChanged = old != null && old != fingerprint
         if (observationsChanged) {
             addTimelineEvent("Observed visible-app state changed",
                 result.optString("level", "REVIEW"), SecurityChangeNarrative.describe(baseline))
         }
-        secure.putString("observationFingerprintV2", fingerprint)
+        secure.putString("observationFingerprintV3", fingerprint)
         result.put("baseline", baseline)
         result.put("timeline", if (observationsChanged) timeline() else priorTimeline)
         result.put("dispositions", dispositions)
@@ -59,7 +59,7 @@ class ScoutTraceBridge(private val context: Context) {
                 "Delete ScoutTrace security history?",
                 "Permanently erase the local encrypted baseline, observation timeline, and scan fingerprint on this device? Saved app classifications will be kept."
             )) return false
-        secure.remove("timeline", "baseline", "lastFingerprint", "observationFingerprintV2", "baselineAt")
+        secure.remove("timeline", "baseline", "lastFingerprint", "observationFingerprintV2", "observationFingerprintV3", "baselineAt")
         return true
     }
 

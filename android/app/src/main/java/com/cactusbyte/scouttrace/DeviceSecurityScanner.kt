@@ -22,15 +22,8 @@ class DeviceSecurityScanner(private val context: Context) {
         val findings=mutableListOf<Finding>()
         val appRisks=JSONArray()
         val permissionMatrix=JSONObject()
-        val buckets=linkedMapOf(
-            "camera" to "android.permission.CAMERA",
-            "microphone" to "android.permission.RECORD_AUDIO",
-            "location" to "android.permission.ACCESS_FINE_LOCATION",
-            "contacts" to "android.permission.READ_CONTACTS",
-            "sms" to "android.permission.READ_SMS",
-            "phone" to "android.permission.READ_PHONE_STATE"
-        )
-        (buckets.keys + listOf("accessibilityEnabled", "deviceAdminActive", "overlayDeclared", "installPackagesDeclared"))
+        (AndroidPermissionCatalog.bucketNames + AndroidSpecialAccessCatalog.bucketNames +
+            listOf("accessibilityEnabled", "deviceAdminActive"))
             .forEach { permissionMatrix.put(it, JSONArray()) }
         val packages=installedPackages()
         val accessibility=enabledAccessibilityPackages()
@@ -44,8 +37,8 @@ class DeviceSecurityScanner(private val context: Context) {
             if(app.flags and ApplicationInfo.FLAG_SYSTEM != 0) continue
             val installer=installerOf(pkg.packageName)
             val requested=pkg.requestedPermissions?.toSet().orEmpty()
-            val enabledA11y=pkg.packageName in accessibility
-            val admin=pkg.packageName in admins
+            val enabledA11y=accessibility?.contains(pkg.packageName) == true
+            val admin=admins?.contains(pkg.packageName) == true
             // This checks the APK declaration, not active AppOps overlay access.
             val overlay="android.permission.SYSTEM_ALERT_WINDOW" in requested
             val canInstall="android.permission.REQUEST_INSTALL_PACKAGES" in requested
@@ -55,22 +48,33 @@ class DeviceSecurityScanner(private val context: Context) {
             if(side) otherInstallers++
             if(source == InstallSourceTrust.Source.UNKNOWN) unknownInstallers++
 
-            buckets.forEach { (label,permission) ->
-                if(permission in requested) permissionMatrix.getJSONArray(label).put(JSONObject()
-                    .put("name",appLabel(pkg)).put("packageName",pkg.packageName)
-                    .put("requested", true)
-                    .put("granted", pm.checkPermission(permission, pkg.packageName) == PackageManager.PERMISSION_GRANTED))
+            val label = appLabel(pkg)
+            val observedPermissions=AndroidPermissionCatalog.observe(requested, Build.VERSION.SDK_INT) { permission ->
+                when(pm.checkPermission(permission, pkg.packageName)) {
+                    PackageManager.PERMISSION_GRANTED -> true
+                    PackageManager.PERMISSION_DENIED -> false
+                    else -> null
+                }
             }
-
-            fun special(bucket: String, state: String, verified: Boolean?) {
-                val item = JSONObject().put("name", appLabel(pkg)).put("packageName", pkg.packageName).put("state", state)
-                item.put("granted", verified ?: JSONObject.NULL)
-                permissionMatrix.getJSONArray(bucket).put(item)
+            observedPermissions.forEach { observation ->
+                permissionMatrix.getJSONArray(observation.spec.bucket)
+                    .put(AndroidPermissionCatalog.matrixItem(label, pkg.packageName, observation))
             }
-            if(enabledA11y) special("accessibilityEnabled", "ENABLED", true)
-            if(admin) special("deviceAdminActive", "ACTIVE", true)
-            if(overlay) special("overlayDeclared", "DECLARED_ACCESS_UNVERIFIED", null)
-            if(canInstall) special("installPackagesDeclared", "DECLARED_ACCESS_UNVERIFIED", null)
+            // ServiceInfo.permission is a service binding, not an app's uses-permission.
+            val serviceBindings=pkg.services?.mapNotNull { it.permission }?.toSet().orEmpty()
+            val declaredSpecial=AndroidSpecialAccessCatalog.declared(
+                requested, serviceBindings, Build.VERSION.SDK_INT)
+            declaredSpecial.forEach { spec ->
+                permissionMatrix.getJSONArray(spec.bucket)
+                    .put(AndroidSpecialAccessCatalog.matrixItem(label, pkg.packageName, spec))
+            }
+            fun activeSpecial(bucket:String) {
+                permissionMatrix.getJSONArray(bucket).put(JSONObject()
+                    .put("name", label).put("packageName",pkg.packageName)
+                    .put("state","OS_REPORTED_ACTIVE").put("granted",true))
+            }
+            if(enabledA11y) activeSpecial("accessibilityEnabled")
+            if(admin) activeSpecial("deviceAdminActive")
 
             val decision = AppRiskPolicy.evaluate(AppRiskPolicy.Signals(
                 otherInstaller = side,
@@ -87,11 +91,18 @@ class DeviceSecurityScanner(private val context: Context) {
                 .put("activePrivilegeCount",decision.activePrivilegeCount)
                 .put("declaredCapabilityCount",decision.declaredCapabilityCount)
                 .put("contextIndicatorCount",decision.contextIndicatorCount).put("installer",installer?:"unknown").put("installSourceStatus",source.name).put("versionCode",if(Build.VERSION.SDK_INT>=28)pkg.longVersionCode else @Suppress("DEPRECATION") pkg.versionCode.toLong()).put("requestedPermissions",JSONArray(requested.sorted()))
-                .put("grantedRuntimePermissions", JSONArray(buckets.values.filter {
-                    it in requested && pm.checkPermission(it, pkg.packageName) == PackageManager.PERMISSION_GRANTED
-                }.sorted()))
+                .put("grantedRuntimePermissions",AndroidPermissionCatalog.grantedNames(observedPermissions))
+                .put("unknownRuntimePermissionGrants",AndroidPermissionCatalog.unavailableNames(observedPermissions))
+                .put("declaredSpecialAccess",AndroidSpecialAccessCatalog.declaredNames(declaredSpecial))
+                .put("specialAccessEvidence",AndroidSpecialAccessCatalog.evidence(declaredSpecial))
+                .put("accessibilityState",if(accessibility==null) "UNKNOWN" else if(enabledA11y) "ENABLED" else "NOT_OBSERVED")
+                .put("deviceAdminState",if(admins==null) "UNKNOWN" else if(admin) "ACTIVE" else "NOT_OBSERVED")
                 .put("overlayDeclared", overlay)
-                .put("accessibilityEnabled",enabledA11y).put("deviceAdminActive",admin).put("reasons",JSONArray(reasons)).put("evidence",evidence))
+                .apply {
+                    // Failed privileged queries are unknown, never observed negatives.
+                    if(accessibility!=null) put("accessibilityEnabled", enabledA11y)
+                    if(admins!=null) put("deviceAdminActive", admin)
+                }.put("reasons",JSONArray(reasons)).put("evidence",evidence))
             if(level!="CLEAR") findings+=Finding(level,appLabel(pkg),reasons.joinToString(" • "),pkg.packageName)
         }
 
@@ -111,6 +122,12 @@ class DeviceSecurityScanner(private val context: Context) {
         return JSONObject()
             .put("level",highest)
             .put("assessmentModelVersion", AppRiskPolicy.VERSION)
+            .put("permissionEvidenceSchemaVersion", AndroidPermissionCatalog.SCHEMA_VERSION)
+            .put("specialAccessCoverage",JSONObject()
+                .put("accessibilityQuery",if(accessibility==null) "UNAVAILABLE" else "ANDROID_REPORTED")
+                .put("deviceAdminQuery",if(admins==null) "UNAVAILABLE" else "ANDROID_REPORTED")
+                .put("otherAppSpecialAppOps","NOT_VERIFIED")
+                .put("note","Special-access and bound-service declarations do not prove active use. Android does not provide ScoutTrace with an authoritative cross-app AppOps inventory."))
             .put("summary","Analyzed ${appRisks.length()} non-system apps from ${packages.size} Android-visible packages. Findings are indicators for review, not proof of malware.")
             .put("visibility",VisibilityStatus(context).describe(packages.size))
             .put("coverage",ScanCoverage.packageCoverage(packages.size))
@@ -151,10 +168,22 @@ class DeviceSecurityScanner(private val context: Context) {
             .put("sdk",Build.VERSION.SDK_INT)
     } catch(_:Exception){JSONObject().put("unknown",true)}
 
-    private fun installedPackages():List<PackageInfo> = if(Build.VERSION.SDK_INT>=33) pm.getInstalledPackages(PackageManager.PackageInfoFlags.of(PackageManager.GET_PERMISSIONS.toLong())) else @Suppress("DEPRECATION") pm.getInstalledPackages(PackageManager.GET_PERMISSIONS)
+    private fun installedPackages():List<PackageInfo> {
+        val flags=PackageManager.GET_PERMISSIONS or PackageManager.GET_SERVICES
+        return if(Build.VERSION.SDK_INT>=33)
+            pm.getInstalledPackages(PackageManager.PackageInfoFlags.of(flags.toLong()))
+        else @Suppress("DEPRECATION") pm.getInstalledPackages(flags)
+    }
     private fun installerOf(pkg:String):String?=try{if(Build.VERSION.SDK_INT>=30)pm.getInstallSourceInfo(pkg).installingPackageName else @Suppress("DEPRECATION") pm.getInstallerPackageName(pkg)}catch(_:Exception){null}
-    private fun enabledAccessibilityPackages():Set<String> = try{context.getSystemService(AccessibilityManager::class.java).getEnabledAccessibilityServiceList(AccessibilityServiceInfo.FEEDBACK_ALL_MASK).mapNotNull{it.resolveInfo?.serviceInfo?.packageName}.toSet()}catch(_:Exception){emptySet()}
-    private fun activeAdminPackages():Set<String> = try{context.getSystemService(DevicePolicyManager::class.java).activeAdmins?.map{it.packageName}?.toSet().orEmpty()}catch(_:Exception){emptySet()}
+    private fun enabledAccessibilityPackages():Set<String>? = try{
+        context.getSystemService(AccessibilityManager::class.java)
+            .getEnabledAccessibilityServiceList(AccessibilityServiceInfo.FEEDBACK_ALL_MASK)
+            .mapNotNull{it.resolveInfo?.serviceInfo?.packageName}.toSet()
+    }catch(_:Exception){null}
+    private fun activeAdminPackages():Set<String>? = try{
+        context.getSystemService(DevicePolicyManager::class.java)
+            .activeAdmins?.map{it.packageName}?.toSet().orEmpty()
+    }catch(_:Exception){null}
     private fun appLabel(pkg:PackageInfo):String=try{pm.getApplicationLabel(pkg.applicationInfo!!).toString()}catch(_:Exception){pkg.packageName}
     private fun rank(level:String)=when(level){"HIGH CAUTION"->0;"ELEVATED"->1;"REVIEW"->2;else->3}
 }

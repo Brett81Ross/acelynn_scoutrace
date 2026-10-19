@@ -50,4 +50,26 @@ class ObservedAppFingerprintTest {
         assertNotEquals(ObservedAppFingerprint.calculate(original),
             ObservedAppFingerprint.calculate(snapshot(changed)))
     }
+
+    @Test fun newlyDeclaredNotificationListenerIsObservedEvidenceNotActiveAccess() {
+        val base = app("com.example.app").put("declaredSpecialAccess", JSONArray())
+        val changed = JSONObject(base.toString())
+            .put("declaredSpecialAccess", JSONArray().put("notificationListenerDeclared"))
+        assertNotEquals(ObservedAppFingerprint.calculate(snapshot(base)),
+            ObservedAppFingerprint.calculate(snapshot(changed)))
+    }
+
+    @Test fun specialAccessArrayOrderDoesNotCreateFakeFingerprintChange() {
+        val old = app("com.example.app").put("declaredSpecialAccess",
+            JSONArray().put("vpnServiceDeclared").put("overlayDeclared"))
+        val reordered = JSONObject(old.toString()).put("declaredSpecialAccess",
+            JSONArray().put("overlayDeclared").put("vpnServiceDeclared"))
+        assertEquals(ObservedAppFingerprint.calculate(snapshot(old)),
+            ObservedAppFingerprint.calculate(snapshot(reordered)))
+    }
+
+    @Test fun modelVersionIsExplicitlyBumpedForNewEvidenceSchema() {
+        assertEquals(3, ObservedAppFingerprint.VERSION)
+        assertEquals(2, AndroidPermissionCatalog.SCHEMA_VERSION)
+    }
 }

@@ -10,7 +10,9 @@ import org.json.JSONObject
 object BaselineComparator {
     private val metadataFields = listOf(
         "versionCode", "installer", "installSourceStatus", "requestedPermissions",
-        "grantedRuntimePermissions", "overlayDeclared", "accessibilityEnabled", "deviceAdminActive"
+        "grantedRuntimePermissions", "unknownRuntimePermissionGrants", "declaredSpecialAccess",
+        "overlayDeclared", "accessibilityEnabled", "deviceAdminActive",
+        "accessibilityState", "deviceAdminState"
     )
 
     fun compare(before: JSONObject, after: JSONObject, savedAt: Long): JSONObject {
@@ -23,6 +25,9 @@ object BaselineComparator {
         val priorModel = before.optInt("assessmentModelVersion", -1)
         val currentModel = after.optInt("assessmentModelVersion", -1)
         val modelChanged = priorModel <= 0 || currentModel <= 0 || priorModel != currentModel
+        val priorPermissions = before.optInt("permissionEvidenceSchemaVersion", 1)
+        val currentPermissions = after.optInt("permissionEvidenceSchemaVersion", 1)
+        val permissionSchemaChanged = priorPermissions != currentPermissions
         val risks = JSONArray()
         val metadata = JSONArray()
         (beforePkgs intersect afterPkgs).sorted().forEach { pkg ->
@@ -39,7 +44,11 @@ object BaselineComparator {
 
             val fields = JSONArray()
             metadataFields.forEach { field ->
-                if (old.has(field) && now.has(field) &&
+                val newObservationField = field in setOf("grantedRuntimePermissions",
+                    "unknownRuntimePermissionGrants", "declaredSpecialAccess",
+                    "accessibilityState", "deviceAdminState")
+                if ((!permissionSchemaChanged || !newObservationField) &&
+                    old.has(field) && now.has(field) &&
                     comparableValue(old.opt(field)) != comparableValue(now.opt(field))) {
                     fields.put(field)
                 }
@@ -72,6 +81,7 @@ object BaselineComparator {
             .put("riskChanges", risks)
             .put("metadataChanges", metadata)
             .put("assessmentModelChanged", modelChanged)
+            .put("permissionEvidenceSchemaChanged", permissionSchemaChanged)
             .put("levelChanged", !modelChanged && before.optString("level") != after.optString("level"))
     }
 

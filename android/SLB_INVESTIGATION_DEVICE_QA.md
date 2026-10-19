@@ -42,6 +42,13 @@ Status: **validation branch only; no production deployment, merge, or Play publi
 30. Observation fingerprint: confirm that reordering package/permission arrays or reclassifying risk does not trigger a timeline change; changing an Android-reported permission, installer, app version, or active privilege does trigger one on a subsequent scan after the v2 checkpoint.
 31. Integrity: corrupt encrypted classifications or timeline and verify failed scan does not advance the new fingerprint or erase the stored evidence.
 
+32. Expanded runtime permissions: Android 8/12/13/14/15 checks for camera, mic, precise/approximate/background location, contacts, SMS, call logs, calendar, body sensors, activity recognition, notifications, Bluetooth, nearby Wi-Fi, media and selected photos. Compare against Android App Info. A grant does not prove access/use.
+33. Android 14 partial media: grant Selected Photos only. Verify ScoutTrace displays the selection-limited scope and never reports unrestricted photo library access. Deny and re-grant permissions, including one-time permissions.
+34. Special access declarations: verify AppOps-controlled overlay, usage access, settings modification, all-files access, install requests and exact alarms are declared-only, NOT verified active, even if app services request bind permissions. Test Accessibility, notification listener and VPN service declarations separately from uses-permission tags.
+35. Privilege query failure: simulate inability to query Accessibility and Device Administrator lists; scanner must show UNKNOWN/unavailable, not false inactive or alleged active access; no unverified state may raise correlation severity.
+36. Baseline upgrade: an older six-permission baseline must not cause false runtime grant changes when ScoutTrace moves to schema v2. A new baseline saved on the same schema must detect actual permission grants and special declarations. The v3 fingerprint must not emit an upgrade-only timeline entry.
+37. Play policy: confirm GET_SERVICES is only a query flag (no new Android permission), Play flavor still lacks QUERY_ALL_PACKAGES and only labels visible apps.
+
 ## Release gate
 CI compilation, unit tests, lint, APK/AAB and manifest checks are **necessary but not sufficient**. Device evidence (screenshots, Android version, test steps, results) and manual review of the ten-screen design contract are required. No device QA is claimed by this document.
 

@@ -55,6 +55,17 @@ Validation branch only. No production deployment is authorized by this document.
 - Encrypted dispositions and timelines are checked before advancing an observation checkpoint, preserving fail-closed data integrity.
 - Includes deterministic policy, fingerprint and migration regression tests. Physical device verification remains open.
 
+## Expanded permission and special-access detection (validation only)
+- Sensitive runtime permission catalog expanded to 25 distinct categories with API-level applicability and explicit granted, denied or unavailable states. Observed grant does not establish actual use.
+- Android 13/14 notifications, media files, and selected-photo access distinguish platform and partial-library scope.
+- Special-access declaration catalog detects overlays, install requests, usage access, settings changes, all-files access, exact alarms and Accessibility/notification-listener/VPN service binding declarations.
+- Only Accessibility enabled services and active Device Administrators can be marked Android-reported active; other apps' special AppOps access is not verified.
+- Active privilege query failures remain UNKNOWN, not observed inactive.
+- Permission evidence schema versioning protects saved baselines from false grant alerts when ScoutTrace gains new detection categories.
+- Observation fingerprint v3 adds new permission/special-access evidence without fabricating a policy-upgrade timeline event; v2 checkpoint retained until explicit history deletion.
+- Play flavor retains restricted package visibility. No new permissions are requested by ScoutTrace.
+- Unit regression tests cover Android API gates, partial-media semantics, service declarations and baseline/fingerprint migration. Device QA remains required.
+
 ## Partially implemented / needs completion
 - Permission Matrix special-access categories.
 - Trusted / Watch / Ignore states are stored; Ignore/Reset are exposed in UI. Ignored lower-priority findings are hidden from display and priority callout, while HIGH CAUTION remains visible. Watch findings are prioritized within the same severity tier, with HIGH CAUTION always ahead of lower severity; device QA remains open.

@@ -89,4 +89,38 @@ class BaselineComparatorTest {
         assertFalse(event.has("installedAt"))
         assertFalse(result.getBoolean("assessmentModelChanged"))
     }
+
+    @Test fun expandedPermissionCatalogDoesNotInventGrantsForOlderBaseline() {
+        val old = snapshot(app("com.example.app", JSONArray().put("android.permission.CAMERA")))
+            .put("permissionEvidenceSchemaVersion", 1)
+        val expanded = snapshot(app("com.example.app", JSONArray().put("android.permission.CAMERA")
+            .put("android.permission.ACCESS_COARSE_LOCATION")))
+            .put("permissionEvidenceSchemaVersion", AndroidPermissionCatalog.SCHEMA_VERSION)
+        val diff = BaselineComparator.compare(old, expanded, 0)
+        assertTrue(diff.getBoolean("permissionEvidenceSchemaChanged"))
+        assertEquals(0, diff.getJSONArray("metadataChanges").length())
+    }
+
+    @Test fun samePermissionSchemaDetectsRealNewLocationGrant() {
+        val old = snapshot(app("com.example.app", JSONArray()))
+            .put("permissionEvidenceSchemaVersion", AndroidPermissionCatalog.SCHEMA_VERSION)
+        val expanded = snapshot(app("com.example.app", JSONArray()
+            .put("android.permission.ACCESS_COARSE_LOCATION")))
+            .put("permissionEvidenceSchemaVersion", AndroidPermissionCatalog.SCHEMA_VERSION)
+        val diff = BaselineComparator.compare(old, expanded, 0)
+        assertEquals("android.permission.ACCESS_COARSE_LOCATION",
+            diff.getJSONArray("metadataChanges").getJSONObject(0)
+                .getJSONArray("grantsAdded").getString(0))
+    }
+
+    @Test fun declaredListenerServiceChangeIsVisibleUnderMatchingEvidenceSchema() {
+        val old = snapshot(app("com.example.app").put("declaredSpecialAccess", JSONArray()))
+            .put("permissionEvidenceSchemaVersion", AndroidPermissionCatalog.SCHEMA_VERSION)
+        val next = snapshot(app("com.example.app")
+            .put("declaredSpecialAccess", JSONArray().put("notificationListenerDeclared")))
+            .put("permissionEvidenceSchemaVersion", AndroidPermissionCatalog.SCHEMA_VERSION)
+        val diff = BaselineComparator.compare(old, next, 0)
+        val fields = diff.getJSONArray("metadataChanges").getJSONObject(0).getJSONArray("fields")
+        assertEquals("declaredSpecialAccess", fields.getString(0))
+    }
 }
