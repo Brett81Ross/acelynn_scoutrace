@@ -30,6 +30,14 @@ def main() -> int:
     if "location.hostname!==" not in source or "window.__scoutTracePendingSharedText" not in source:
         print("ERROR: Trusted-origin shared text queue is missing.", file=sys.stderr)
         return 1
+    # Guard the actual rendered Android dashboard wiring, not just data models.
+    for token in ("visibleBaselineChangePriorities", "const changePanel=",
+                  "scouttrace-change-item", "changeAppSettings",
+                  "priority?.nextStep", "Review access change",
+                  "Newly observed access and capabilities"):
+        if token not in match.group(1):
+            print("ERROR: Correlated evidence dashboard missing: " + token, file=sys.stderr)
+            return 1
     node = shutil.which("node")
     if node is None:
         print("ERROR: Node.js is required to validate the embedded JavaScript.", file=sys.stderr)

@@ -54,6 +54,17 @@ object InvestigationNarrative {
                 .put("nextStep", remediation?.optString("nextStep", "Review the evidence and verify expected behavior.")
                     ?: "Review the evidence and verify expected behavior."))
         }
+
+        // Suppress ignored low-severity baseline changes, just like raw findings.
+        val risks = result.optJSONArray("appRisks") ?: JSONArray()
+        val visibleChanges = JSONArray()
+        for (i in 0 until correlated.length()) {
+            val event = correlated.optJSONObject(i) ?: continue
+            val pkg = event.optString("packageName")
+            val level = (0 until risks.length()).mapNotNull { risks.optJSONObject(it) }
+                .firstOrNull { it.optString("packageName") == pkg }?.optString("level") ?: "CLEAR"
+            if (level == "HIGH CAUTION" || dispositions.optString(pkg) != "IGNORE") visibleChanges.put(event)
+        }
         val changes = baseline.optJSONObject("narrative") ?: JSONObject()
         val level = result.optString("level", "CLEAR")
         val headline = when (level) {
@@ -68,6 +79,8 @@ object InvestigationNarrative {
             .put("priorities", priorities)
             .put("baselineChangePriorities", correlated)
             .put("baselineChangePriorityCount",correlated.length())
+            .put("visibleBaselineChangePriorities", visibleChanges)
+            .put("visibleBaselineChangePriorityCount", visibleChanges.length())
             .put("securityDiff", changes.optString("headline", "No comparison available"))
             .put("securityDiffDetail", changes.optString("detail", ""))
             .put("recommendedAction", if (priorities.length() > 0)

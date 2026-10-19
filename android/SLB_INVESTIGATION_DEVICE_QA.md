@@ -55,6 +55,12 @@ Status: **validation branch only; no production deployment, merge, or Play publi
 41. Remediation: settings guidance and user approval only. When suspected abuse or stalking makes changes risky, review safety-planning language. No silent uninstall, revocation or background activity.
 42. Missing baseline or Android-hidden package: show no invented correlated change. Observation timestamps are scanning timestamps, not estimated when an Android permission changed.
 
+43. Dashboard: confirm top next step comes from native narrative priority, and Review priority finding opens its matching app's evidence, not an independently sorted first card.
+44. Baseline changes: grant a camera or mic runtime permission to a CLEAR app after saving a baseline; verify the access-change panel shows the grant without calling it spyware and opens matching Android App Info.
+45. For an enabled Accessibility service versus declaration-only VPN/notification service, confirm separate status labels and accurate remediation. No automatic uninstall or permission revocation.
+46. IGNORE suppresses lower-severity correlated changes, HIGH CAUTION remains, and no-baseline scan displays honest setup guidance.
+47. Check dark/light contrast, Galaxy Fold cover/unfolded screens, scrolling to the exact finding, detail expansion and TalkBack announcements.
+
 ## Release gate
 CI compilation, unit tests, lint, APK/AAB and manifest checks are **necessary but not sufficient**. Device evidence (screenshots, Android version, test steps, results) and manual review of the ten-screen design contract are required. No device QA is claimed by this document.
 

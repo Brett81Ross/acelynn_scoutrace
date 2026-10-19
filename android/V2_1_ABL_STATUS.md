@@ -75,6 +75,14 @@ Validation branch only. No production deployment is authorized by this document.
 - Pure JVM regression tests cover correlation precedence, missing observations, declaration-only alerts, revocations, and non-destructive remediation.
 - Physical-device verification remains open; no production release authorized.
 
+## Baseline correlation in Android UI — validation only
+- The investigation dashboard now uses the native narrative's ordered priorities instead of independently re-sorting raw findings.
+- Separate access-change cards display newly observed active privileges, sensitive permission grants, and declaration-only signals, with per-app evidence and safe remediation.
+- An app with no ordinary risk finding can still display a saved-baseline permission change without being classified as malware.
+- IGNORE suppresses lower-severity change cards, but not HIGH CAUTION changes; controls open Android App Info only when tapped.
+- Regression tests verify filtered correlation and clean-risk permission changes; injected JavaScript CI checks the panel and priority wiring.
+- Physical device layout, TalkBack and Galaxy Fold QA remain open. No deployment authorized.
+
 ## Partially implemented / needs completion
 - Permission Matrix special-access categories.
 - Trusted / Watch / Ignore states are stored; Ignore/Reset are exposed in UI. Ignored lower-priority findings are hidden from display and priority callout, while HIGH CAUTION remains visible. Watch findings are prioritized within the same severity tier, with HIGH CAUTION always ahead of lower severity; device QA remains open.

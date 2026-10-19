@@ -40,4 +40,38 @@ class InvestigationNarrativeTest {
         assertEquals(0, result.getInt("priorityCount"))
         assertTrue(result.getString("residualRisk").contains("cannot prove"))
     }
+
+    @Test fun clearAppWithNewSensitiveGrantRemainsVisibleForReview() {
+        val baseline=JSONObject().put("exists",true).put("metadataChanges",JSONArray()
+            .put(JSONObject().put("packageName","com.example.clear")
+                .put("grantsAdded",JSONArray().put("android.permission.CAMERA"))))
+        val input=JSONObject().put("level","CLEAR").put("findings",JSONArray())
+            .put("appRisks",JSONArray().put(JSONObject().put("packageName","com.example.clear").put("level","CLEAR")))
+            .put("baseline",baseline)
+        val output=InvestigationNarrative.build(input)
+        assertEquals(0,output.getInt("priorityCount"))
+        assertEquals(1,output.getInt("visibleBaselineChangePriorityCount"))
+        assertEquals("REVIEW_NEW_GRANT",output.getJSONArray("visibleBaselineChangePriorities")
+            .getJSONObject(0).getString("priority"))
+    }
+
+    @Test fun ignoredLowSeverityChangeIsHiddenButHighCautionRemainsVisible() {
+        val baseline=JSONObject().put("exists",true).put("metadataChanges",JSONArray()
+            .put(JSONObject().put("packageName","com.example.ignored")
+                .put("grantsAdded",JSONArray().put("android.permission.CAMERA")))
+            .put(JSONObject().put("packageName","com.example.high")
+                .put("accessEnabled",JSONArray().put("accessibilityEnabled"))))
+        val input=JSONObject().put("level","HIGH CAUTION").put("findings",JSONArray())
+            .put("baseline",baseline).put("appRisks",JSONArray()
+                .put(JSONObject().put("packageName","com.example.ignored").put("level","REVIEW"))
+                .put(JSONObject().put("packageName","com.example.high").put("level","HIGH CAUTION")
+                    .put("accessibilityEnabled",true).put("deviceAdminActive",true)))
+            .put("dispositions",JSONObject().put("com.example.ignored","IGNORE")
+                .put("com.example.high","IGNORE"))
+        val result=InvestigationNarrative.build(input)
+        assertEquals(2,result.getInt("baselineChangePriorityCount"))
+        assertEquals(1,result.getInt("visibleBaselineChangePriorityCount"))
+        assertEquals("com.example.high",result.getJSONArray("visibleBaselineChangePriorities")
+            .getJSONObject(0).getString("packageName"))
+    }
 }
