@@ -55,7 +55,8 @@ class AppRiskPolicyTest {
         val result = AppRiskPolicy.evaluate(AppRiskPolicy.Signals(notificationListenerEnabled = true))
         assertEquals("REVIEW", result.level)
         assertEquals("ENABLED_NOTIFICATION_LISTENER_CONTEXT", result.rule)
-        assertEquals(1, result.activePrivilegeCount)
+        assertEquals(0, result.activePrivilegeCount)
+        assertEquals(1, result.enabledSettingCount)
     }
 
     @Test fun accessibilityWithListenerIsElevatedButNotHighCaution() {
@@ -69,7 +70,16 @@ class AppRiskPolicyTest {
             accessibilityEnabled = true, deviceAdminActive = true,
             notificationListenerEnabled = true))
         assertEquals("HIGH CAUTION", result.level)
-        assertEquals(3, result.activePrivilegeCount)
+        assertEquals(2, result.activePrivilegeCount)
+        assertEquals(1, result.enabledSettingCount)
     }
 
+
+    @Test fun settingAloneDoesNotBecomeActiveAdministratorOrAccessibilityPrivilege() {
+        val result = AppRiskPolicy.evaluate(AppRiskPolicy.Signals(
+            notificationListenerEnabled = true, otherInstaller = true))
+        assertEquals(0, result.activePrivilegeCount)
+        assertEquals(1, result.enabledSettingCount)
+        assertEquals("REVIEW", result.level)
+    }
 }

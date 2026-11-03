@@ -18,10 +18,11 @@ object EvidenceModel {
     ): JSONObject {
         // 'sideloaded' means an installer other than a recognized store ID was observed;
         // it does not prove how the APK was delivered.
-        val verifiedPrivilegeCount = listOf(accessibility, admin, notificationListener).count { it }
+        val verifiedPrivilegeCount = listOf(accessibility, admin).count { it }
+        val enabledSettingCount = if (notificationListener) 1 else 0
         val declaredCapabilityCount = listOf(overlay, installPackages).count { it }
         val contextCount = listOf(sideloaded, debuggable).count { it }
-        val indicatorCount = verifiedPrivilegeCount + declaredCapabilityCount + contextCount
+        val indicatorCount = verifiedPrivilegeCount + enabledSettingCount + declaredCapabilityCount + contextCount
         val correlated = accessibility && admin
         val evidence = when {
             correlated -> "HIGH"
@@ -44,8 +45,8 @@ object EvidenceModel {
         }
         val explanation = when {
             correlated -> "Android reports both an enabled Accessibility service and an active Device Administrator. Verify that this combination is expected; it is not proof of malware."
-            verifiedPrivilegeCount > 0 -> "Android reports enabled privileged access or a notification-listener setting. This does not prove that notifications were read or any access was used."
-            indicatorCount > 0 -> "Observed signals are declarations, build flags, or installer metadata. No active Accessibility or Device Administrator privilege was confirmed for this app."
+            verifiedPrivilegeCount > 0 -> "Android reports an enabled Accessibility service or active Device Administrator. This does not prove that any capability was used."
+            indicatorCount > 0 -> "Signals include declarations, installer metadata, build flags or an enabled notification-listener setting. The setting is not confirmation of a connected service or notification access."
             else -> "No listed indicators were observable. Limited Android visibility does not prove an app is safe."
         }
         return JSONObject()
@@ -55,6 +56,7 @@ object EvidenceModel {
             .put("correlated", correlated)
             .put("indicatorCount", indicatorCount)
             .put("verifiedPrivilegeCount", verifiedPrivilegeCount)
+            .put("enabledSettingCount", enabledSettingCount)
             .put("declaredCapabilityCount", declaredCapabilityCount)
             .put("contextIndicatorCount", contextCount)
             .put("explanation", explanation)

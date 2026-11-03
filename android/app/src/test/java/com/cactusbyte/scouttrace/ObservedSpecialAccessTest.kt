@@ -44,4 +44,16 @@ class ObservedSpecialAccessTest {
         assertEquals("UNKNOWN", snapshot.listenerState("com.example.app"))
         assertEquals("UNKNOWN", snapshot.keyboardState("com.example.app"))
     }
+
+    @Test fun abnormallyLargeOemSettingIsUnknownNotACompleteListenerList() {
+        val giant = "com.example.app/.Listener:" + "x".repeat(9000)
+        assertNull(ObservedSpecialAccess.notificationListenerPackages(giant))
+        val many = (0..300).joinToString(":") { "com.example.app/.Listener" }
+        assertNull(ObservedSpecialAccess.notificationListenerPackages(many))
+    }
+
+    @Test fun malformedInputMethodIdentifierIsNotAnObservedSelectedKeyboard() {
+        assertNull(ObservedSpecialAccess.selectedInputMethodPackage(
+            "com.example.keyboard/" + "A".repeat(1100)))
+    }
 }

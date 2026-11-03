@@ -51,11 +51,11 @@ class ObservedAppFingerprintTest {
             ObservedAppFingerprint.calculate(snapshot(changed)))
     }
 
-    @Test fun newlyDeclaredNotificationListenerIsObservedEvidenceNotActiveAccess() {
+    @Test fun transientOemServiceMetadataChangeIsNotATimelineEvent() {
         val base = app("com.example.app").put("declaredSpecialAccess", JSONArray())
         val changed = JSONObject(base.toString())
             .put("declaredSpecialAccess", JSONArray().put("notificationListenerDeclared"))
-        assertNotEquals(ObservedAppFingerprint.calculate(snapshot(base)),
+        assertEquals(ObservedAppFingerprint.calculate(snapshot(base)),
             ObservedAppFingerprint.calculate(snapshot(changed)))
     }
 
@@ -69,17 +69,24 @@ class ObservedAppFingerprintTest {
     }
 
     @Test fun modelVersionIsExplicitlyBumpedForNewEvidenceSchema() {
-        assertEquals(4, ObservedAppFingerprint.VERSION)
+        assertEquals(5, ObservedAppFingerprint.VERSION)
         assertEquals(3, AndroidPermissionCatalog.SCHEMA_VERSION)
     }
 
-    @Test fun notificationAndKeyboardSettingChangesAreObservedNotDerivedScores() {
+    @Test fun optionalOemSettingChangesDoNotInventCoreTimelineEvent() {
         val before = app("com.example.app").put("notificationListenerEnabled", false)
             .put("selectedInputMethod", false)
         val after = JSONObject(before.toString()).put("notificationListenerEnabled", true)
             .put("selectedInputMethod", true)
-        assertNotEquals(ObservedAppFingerprint.calculate(snapshot(before)),
+        assertEquals(ObservedAppFingerprint.calculate(snapshot(before)),
             ObservedAppFingerprint.calculate(snapshot(after)))
     }
 
+
+    @Test fun notificationSettingValueChangesStillAlterFingerprintOnCompleteScans() {
+        val old=app("com.example.app").put("notificationListenerState","NOT_IN_REPORTED_SETTING")
+        val now=JSONObject(old.toString()).put("notificationListenerState","OS_REPORTED_ENABLED_SETTING")
+        assertEquals(ObservedAppFingerprint.calculate(snapshot(old)),
+            ObservedAppFingerprint.calculate(snapshot(now)))
+    }
 }

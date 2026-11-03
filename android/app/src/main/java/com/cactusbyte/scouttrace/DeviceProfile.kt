@@ -18,6 +18,7 @@ object DeviceProfile {
             .put("sdk", Build.VERSION.SDK_INT)
             .put("androidVersion", Build.VERSION.RELEASE.orEmpty().ifBlank { "unknown" })
             .put("oemFamily", family)
-            .put("remediationMode", if (family == "ANDROID") "GENERIC_SETTINGS" else "OEM_AWARE_WITH_GENERIC_FALLBACK")
+            .put("remediationMode", OemEvidenceGuidance.settingsMode(manufacturer))
+            .put("remediationCaveat", OemEvidenceGuidance.note(manufacturer))
     }
 }

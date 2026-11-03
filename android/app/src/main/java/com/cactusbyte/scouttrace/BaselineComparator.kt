@@ -26,6 +26,9 @@ object BaselineComparator {
         val priorModel = before.optInt("assessmentModelVersion", -1)
         val currentModel = after.optInt("assessmentModelVersion", -1)
         val modelChanged = priorModel <= 0 || currentModel <= 0 || priorModel != currentModel
+        val oldQuality = before.optJSONObject("observationQuality")?.optBoolean("complete", true) ?: true
+        val newQuality = after.optJSONObject("observationQuality")?.optBoolean("complete", true) ?: true
+        val riskComparisonReliable = oldQuality && newQuality
         val priorPermissions = before.optInt("permissionEvidenceSchemaVersion", 1)
         val currentPermissions = after.optInt("permissionEvidenceSchemaVersion", 1)
         val permissionSchemaChanged = priorPermissions != currentPermissions
@@ -34,10 +37,12 @@ object BaselineComparator {
                 after.optInt("specialAccessEvidenceSchemaVersion", 1)
         val risks = JSONArray()
         val metadata = JSONArray()
+        val serviceOnly = setOf("accessibilityServiceDeclared",
+            "notificationListenerDeclared", "vpnServiceDeclared")
         (beforePkgs intersect afterPkgs).sorted().forEach { pkg ->
             val old = previous.getValue(pkg)
             val now = current.getValue(pkg)
-            if (!modelChanged && (old.optString("level") != now.optString("level") ||
+            if (!modelChanged && riskComparisonReliable && (old.optString("level") != now.optString("level") ||
                 old.optInt("score") != now.optInt("score"))) {
                 risks.put(JSONObject().put("packageName", pkg)
                     .put("fromLevel", old.optString("level"))
@@ -52,31 +57,59 @@ object BaselineComparator {
                     "unknownRuntimePermissionGrants", "declaredSpecialAccess",
                     "accessibilityState", "deviceAdminState")
                 val newSpecialField = field in setOf("notificationListenerState",
-                    "selectedInputMethodState", "notificationListenerEnabled", "selectedInputMethod")
+                    "selectedInputMethodState", "notificationListenerEnabled", "selectedInputMethod",
+                    "declaredSpecialAccess")
+                val knownStates = if (field in setOf("accessibilityState", "deviceAdminState",
+                        "notificationListenerState", "selectedInputMethodState"))
+                    SpecialAccessReliability.comparableState(
+                        old.optString(field).takeIf { old.has(field) },
+                        now.optString(field).takeIf { now.has(field) }) else true
+                val serviceMetadataBothReported =
+                    old.optString("serviceMetadataState") == "REPORTED" &&
+                        now.optString("serviceMetadataState") == "REPORTED"
+                val oldValue = if (field == "declaredSpecialAccess" && !serviceMetadataBothReported)
+                    strings(old.optJSONArray(field)) - serviceOnly else null
+                val newValue = if (field == "declaredSpecialAccess" && !serviceMetadataBothReported)
+                    strings(now.optJSONArray(field)) - serviceOnly else null
+                val uncertainPermissions = strings(old.optJSONArray("unknownRuntimePermissionGrants")) +
+                    strings(now.optJSONArray("unknownRuntimePermissionGrants"))
+                val changed = when {
+                    field == "grantedRuntimePermissions" ->
+                        (strings(old.optJSONArray(field)) - uncertainPermissions) !=
+                            (strings(now.optJSONArray(field)) - uncertainPermissions)
+                    oldValue != null && newValue != null -> oldValue != newValue
+                    else -> comparableValue(old.opt(field)) != comparableValue(now.opt(field))
+                }
                 if ((!permissionSchemaChanged || !newObservationField) &&
                     (!specialSchemaChanged || !newSpecialField) &&
-                    old.has(field) && now.has(field) &&
-                    comparableValue(old.opt(field)) != comparableValue(now.opt(field))) {
+                    old.has(field) && now.has(field) && knownStates && changed) {
                     fields.put(field)
                 }
             }
             if (fields.length() > 0) {
                 val event = JSONObject().put("packageName", pkg).put("fields", fields)
                 if ((0 until fields.length()).any { fields.optString(it) == "grantedRuntimePermissions" }) {
-                    val oldGrants = strings(old.optJSONArray("grantedRuntimePermissions"))
-                    val newGrants = strings(now.optJSONArray("grantedRuntimePermissions"))
+                    val uncertain = strings(old.optJSONArray("unknownRuntimePermissionGrants")) +
+                        strings(now.optJSONArray("unknownRuntimePermissionGrants"))
+                    val oldGrants = strings(old.optJSONArray("grantedRuntimePermissions")) - uncertain
+                    val newGrants = strings(now.optJSONArray("grantedRuntimePermissions")) - uncertain
                     event.put("grantsAdded", JSONArray((newGrants - oldGrants).sorted()))
                         .put("grantsRevoked", JSONArray((oldGrants - newGrants).sorted()))
                 }
                 if ((0 until fields.length()).any { fields.optString(it) == "declaredSpecialAccess" }) {
+                    val serviceMetadataBothReported =
+                        old.optString("serviceMetadataState") == "REPORTED" &&
+                            now.optString("serviceMetadataState") == "REPORTED"
                     val oldDeclarations = strings(old.optJSONArray("declaredSpecialAccess"))
+                        .let { if (serviceMetadataBothReported) it else it - serviceOnly }
                     val nowDeclarations = strings(now.optJSONArray("declaredSpecialAccess"))
+                        .let { if (serviceMetadataBothReported) it else it - serviceOnly }
                     event.put("specialDeclarationsAdded",JSONArray((nowDeclarations - oldDeclarations).sorted()))
                         .put("specialDeclarationsRemoved",JSONArray((oldDeclarations - nowDeclarations).sorted()))
                 }
                 val enabled = JSONArray()
                 val disabled = JSONArray()
-                listOf("accessibilityEnabled", "deviceAdminActive", "notificationListenerEnabled").forEach { field ->
+                listOf("accessibilityEnabled", "deviceAdminActive").forEach { field ->
                     if (old.has(field) && now.has(field) &&
                         old.optBoolean(field) != now.optBoolean(field)) {
                         if (now.optBoolean(field)) enabled.put(field) else disabled.put(field)
@@ -84,6 +117,12 @@ object BaselineComparator {
                 }
                 if (enabled.length() > 0) event.put("accessEnabled", enabled)
                 if (disabled.length() > 0) event.put("accessDisabled", disabled)
+                if (old.has("notificationListenerEnabled") && now.has("notificationListenerEnabled") &&
+                    old.optBoolean("notificationListenerEnabled") != now.optBoolean("notificationListenerEnabled")) {
+                    if (now.optBoolean("notificationListenerEnabled"))
+                        event.put("settingsEnabled",JSONArray().put("notificationListenerEnabled"))
+                    else event.put("settingsDisabled",JSONArray().put("notificationListenerEnabled"))
+                }
                 metadata.put(event)
             }
         }
@@ -94,9 +133,11 @@ object BaselineComparator {
             .put("riskChanges", risks)
             .put("metadataChanges", metadata)
             .put("assessmentModelChanged", modelChanged)
+            .put("riskComparisonReliable", riskComparisonReliable)
             .put("permissionEvidenceSchemaChanged", permissionSchemaChanged)
             .put("specialAccessEvidenceSchemaChanged", specialSchemaChanged)
-            .put("levelChanged", !modelChanged && before.optString("level") != after.optString("level"))
+            .put("levelChanged", !modelChanged && riskComparisonReliable &&
+                before.optString("level") != after.optString("level"))
     }
 
     private fun appMap(array: JSONArray?): Map<String, JSONObject> {

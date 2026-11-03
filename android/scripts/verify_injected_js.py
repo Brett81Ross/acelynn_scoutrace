@@ -34,7 +34,9 @@ def main() -> int:
     for token in ("visibleBaselineChangePriorities", "const changePanel=",
                   "scouttrace-change-item", "changeAppSettings",
                   "priority?.nextStep", "Review access change",
-                  "Newly observed access and capabilities"):
+                  "Newly observed access and capabilities",
+                  "REVIEW_ENABLED_SETTING", "enabledSettings",
+                  "observationCheckpoint", "checkpointNote"): 
         if token not in match.group(1):
             print("ERROR: Correlated evidence dashboard missing: " + token, file=sys.stderr)
             return 1

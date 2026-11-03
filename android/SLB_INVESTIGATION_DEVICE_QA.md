@@ -68,6 +68,16 @@ Status: **validation branch only; no production deployment, merge, or Play publi
 36. Validate API gating for SMS/MMS, phone numbers, answer calls, Bluetooth advertising, UWB ranging, and media-location observations on both older and newer Android.
 37. Migration: permission schema v2/v3 and special access schema v1/v2 changes must not fabricate grant events; fingerprint v4 establishes a new checkpoint without a false timeline alert.
 
+## OEM readout / special-access QA extension — validation only
+48. Samsung One UI and Pixel baseline: save a trusted baseline, switch a notification-listener setting and verify that ScoutTrace calls it a listed enabled setting, never a connected listener or proof that notification contents were accessed.
+49. Policy separation: a notification-listener setting alone must count as zero active Accessibility/Device Administrator privileges; verify priority is contextual. Android-reported active Accessibility plus Device Administrator remain independently reviewable.
+50. OEM parsing: simulate missing, malformed, oversized and duplicate Secure Settings entries; ensure no partial list is trusted and no malformed/UNKNOWN state is treated as an observed denial or revocation.
+51. Service metadata: null/omitted service lists can mean no services or limited visibility. Validate baseline comparison does not fabricate listener/VPN service removal when the previous scan had metadata and the current one lacks it.
+52. AppOps: do not claim other apps have active overlay, all-files, notification delivery, usage access or installation privilege based on manifest declarations or Settings strings alone. Review Android Settings manually.
+53. Degraded scan: make Accessibility or Device Administrator observations or runtime permission grants unavailable; confirm the core timeline checkpoint is deferred and repeat scans do not emit fictitious change events. Make only optional listener or keyboard settings unavailable and confirm the core timeline still works while optional observations are UNKNOWN. Recover core access and compare to the last trustworthy checkpoint.
+54. Work profiles and restrictions: test managed-profile and multi-user visibility limitations; no unsupported claims about apps ScoutTrace cannot see. Device admin null list means no active administrators, not a query failure.
+55. OEM matrix: record Samsung Galaxy Fold/One UI and Pixel results with Android version, work profile state, app installed/visible, raw setting read status, observed value, Android Settings cross-check and actual false-positive/false-negative evidence; do not infer successful device QA from JVM tests.
+
 ## Release gate
 CI compilation, unit tests, lint, APK/AAB and manifest checks are **necessary but not sufficient**. Device evidence (screenshots, Android version, test steps, results) and manual review of the ten-screen design contract are required. No device QA is claimed by this document.
 

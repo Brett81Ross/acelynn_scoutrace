@@ -44,4 +44,13 @@ class BaselineNarrativeTest {
         assertTrue(r.getBoolean("changed"))
         assertEquals(1, r.getInt("riskChanges"))
     }
+
+    @Test fun enabledListenerSettingIsNotCountedAsNewActiveDevicePrivilege() {
+        val changed=JSONObject().put("exists",true).put("metadataChanges",JSONArray()
+            .put(JSONObject().put("settingsEnabled",JSONArray().put("notificationListenerEnabled"))))
+        val narrative=BaselineNarrative.summarize(changed)
+        assertEquals(0,narrative.getInt("newlyEnabledPrivileges"))
+        assertEquals(1,narrative.getInt("newlyEnabledSettings"))
+        assertTrue(narrative.getString("headline").contains("setting"))
+    }
 }

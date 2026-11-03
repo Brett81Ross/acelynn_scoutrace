@@ -114,10 +114,12 @@ class BaselineComparatorTest {
     }
 
     @Test fun declaredListenerServiceChangeIsVisibleUnderMatchingEvidenceSchema() {
-        val old = snapshot(app("com.example.app").put("declaredSpecialAccess", JSONArray()))
+        val old = snapshot(app("com.example.app").put("declaredSpecialAccess", JSONArray())
+            .put("serviceMetadataState","REPORTED"))
             .put("permissionEvidenceSchemaVersion", AndroidPermissionCatalog.SCHEMA_VERSION)
         val next = snapshot(app("com.example.app")
-            .put("declaredSpecialAccess", JSONArray().put("notificationListenerDeclared")))
+            .put("declaredSpecialAccess", JSONArray().put("notificationListenerDeclared"))
+            .put("serviceMetadataState","REPORTED"))
             .put("permissionEvidenceSchemaVersion", AndroidPermissionCatalog.SCHEMA_VERSION)
         val diff = BaselineComparator.compare(old, next, 0)
         val fields = diff.getJSONArray("metadataChanges").getJSONObject(0).getJSONArray("fields")
@@ -134,7 +136,8 @@ class BaselineComparatorTest {
         val event = BaselineComparator.compare(old, next, 12)
             .getJSONArray("metadataChanges").getJSONObject(0)
         assertEquals("notificationListenerEnabled",
-            event.getJSONArray("accessEnabled").getString(0))
+            event.getJSONArray("settingsEnabled").getString(0))
+        assertFalse(event.has("accessEnabled"))
     }
 
     @Test fun newSpecialAccessSchemaNeverFabricatesListenerGrant() {
@@ -159,4 +162,54 @@ class BaselineComparatorTest {
         assertFalse(event.has("accessEnabled"))
     }
 
+
+    @Test fun oemQueryUnavailableDoesNotLookLikePrivilegeRevocation() {
+        val before = snapshot(app("com.example.app").put("notificationListenerState","OS_REPORTED_ENABLED_SETTING"))
+        val after = snapshot(app("com.example.app").put("notificationListenerState","UNKNOWN"))
+        val delta=BaselineComparator.compare(before,after,20)
+        assertEquals(0,delta.getJSONArray("metadataChanges").length())
+    }
+
+    @Test fun oemServiceMetadataDisappearanceCannotFabricateDeclarationRemoval() {
+        val old = snapshot(app("com.example.app")
+            .put("declaredSpecialAccess",JSONArray().put("notificationListenerDeclared"))
+            .put("serviceMetadataState","REPORTED"))
+            .put("specialAccessEvidenceSchemaVersion",ObservedSpecialAccess.SCHEMA_VERSION)
+        val now = snapshot(app("com.example.app")
+            .put("declaredSpecialAccess",JSONArray())
+            .put("serviceMetadataState","NOT_REPORTED_OR_EMPTY"))
+            .put("specialAccessEvidenceSchemaVersion",ObservedSpecialAccess.SCHEMA_VERSION)
+        val delta=BaselineComparator.compare(old,now,20)
+        assertEquals(0,delta.getJSONArray("metadataChanges").length())
+    }
+
+    @Test fun missingOemStatusAfterKnownEnabledDoesNotCreateFalseBaselineChange() {
+        val old=snapshot(app("com.example.app").put("accessibilityState","ENABLED"))
+        val now=snapshot(app("com.example.app").put("accessibilityState","UNKNOWN"))
+        assertEquals(0,BaselineComparator.compare(old,now,5)
+            .getJSONArray("metadataChanges").length())
+    }
+
+    @Test fun temporarilyUnknownGrantCannotFabricateRevocation() {
+        val old=snapshot(app("com.example.app",
+            JSONArray().put("android.permission.CAMERA"))
+            .put("unknownRuntimePermissionGrants",JSONArray()))
+        val now=snapshot(app("com.example.app",JSONArray())
+            .put("unknownRuntimePermissionGrants",
+                JSONArray().put("android.permission.CAMERA")))
+        val changes=BaselineComparator.compare(old,now,3).getJSONArray("metadataChanges")
+        assertEquals(1,changes.length())
+        val event=changes.getJSONObject(0)
+        assertFalse(event.has("grantsRevoked"))
+    }
+
+    @Test fun incompleteOemSnapshotSuppressesDerivedRiskLevelChange() {
+        val old=snapshot(app("com.example.app"))
+        val changed=snapshot(app("com.example.app").put("level","ELEVATED").put("score",8))
+            .put("observationQuality",JSONObject().put("complete",false))
+        val result=BaselineComparator.compare(old,changed,2)
+        assertFalse(result.getBoolean("riskComparisonReliable"))
+        assertEquals(0,result.getJSONArray("riskChanges").length())
+        assertFalse(result.getBoolean("levelChanged"))
+    }
 }

@@ -6,7 +6,7 @@ package com.cactusbyte.scouttrace
  * Increment VERSION when these classification rules change.
  */
 object AppRiskPolicy {
-    const val VERSION = 3
+    const val VERSION = 4
 
     data class Signals(
         val otherInstaller: Boolean = false,
@@ -23,6 +23,7 @@ object AppRiskPolicy {
         val score: Int,
         val rule: String,
         val activePrivilegeCount: Int,
+        val enabledSettingCount: Int,
         val declaredCapabilityCount: Int,
         val contextIndicatorCount: Int,
         val reasons: List<String>
@@ -59,8 +60,8 @@ object AppRiskPolicy {
             score += 2
             reasons += "Android setting lists an enabled notification listener; actual notification receipt not observed"
         }
-        val active = listOf(signals.accessibilityEnabled, signals.deviceAdminActive,
-            signals.notificationListenerEnabled).count { it }
+        val active = listOf(signals.accessibilityEnabled, signals.deviceAdminActive).count { it }
+        val enabledSettings = if (signals.notificationListenerEnabled) 1 else 0
         val declared = listOf(signals.overlayDeclared, signals.installRequestsDeclared).count { it }
         val context = listOf(signals.otherInstaller, signals.debuggable).count { it }
         val supporting = declared + context + if (signals.notificationListenerEnabled) 1 else 0
@@ -81,6 +82,6 @@ object AppRiskPolicy {
             "NO_LISTED_INDICATORS" -> "CLEAR"
             else -> "REVIEW"
         }
-        return Decision(level, score, rule, active, declared, context, reasons)
+        return Decision(level, score, rule, active, enabledSettings, declared, context, reasons)
     }
 }

@@ -9,6 +9,7 @@ object RemediationGuide {
             "PRIORITY_REVIEW" -> "Review Android App Info, Accessibility and Device Administrator settings. If unwanted monitoring is possible, plan for personal safety before changing or removing access."
             "REVIEW_ACTIVE_ACCESS" -> "Verify enabled Accessibility, Device Administrator, or notification-listener access and whether you recognize this app before changing settings."
             "REVIEW_NEW_GRANT" -> "Check Android App Info for the newly reported sensitive permission and decide whether the app needs it."
+            "REVIEW_ENABLED_SETTING" -> "Review Android notification access settings for the named app. An enabled setting does not prove the listener is connected or that notifications were read."
             else -> "Review the new service or permission declaration. A declaration does not establish active special access."
         }
         return JSONObject().put("packageName", packageName ?: JSONObject.NULL)

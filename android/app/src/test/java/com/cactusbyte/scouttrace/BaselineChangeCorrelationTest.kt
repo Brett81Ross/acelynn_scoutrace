@@ -78,12 +78,25 @@ class BaselineChangeCorrelationTest {
         assertEquals(1,result.getJSONObject(0).getJSONArray("specialDeclarationsAdded").length())
     }
 
-    @Test fun newlyEnabledListenerIsReviewNotProofOfNotificationReading() {
+    @Test fun newlyEnabledListenerIsSettingEvidenceNotActiveServiceClaim() {
+        val item=change("com.example.app")
+            .put("settingsEnabled",JSONArray().put("notificationListenerEnabled"))
         val events = BaselineChangeCorrelation.correlate(
-            baseline(change("com.example.app", active = arrayOf("notificationListenerEnabled"))),
-            JSONArray().put(app("com.example.app")))
-        assertEquals("REVIEW_ACTIVE_ACCESS", events.getJSONObject(0).getString("priority"))
-        assertTrue(events.getJSONObject(0).getString("detail").contains("does not prove"))
+            baseline(item), JSONArray().put(app("com.example.app")))
+        assertEquals("REVIEW_ENABLED_SETTING", events.getJSONObject(0).getString("priority"))
+        assertEquals(0,events.getJSONObject(0).getJSONArray("activeAccessEnabled").length())
+        assertEquals(1,events.getJSONObject(0).getJSONArray("enabledSettings").length())
+        assertTrue(events.getJSONObject(0).getString("detail").contains("does not establish"))
     }
 
+
+    @Test fun listenerSettingCannotOutrankConfirmedActiveAccessibility() {
+        val listener=change("com.example.listener")
+            .put("settingsEnabled",JSONArray().put("notificationListenerEnabled"))
+        val accessibility=change("com.example.access",active=arrayOf("accessibilityEnabled"))
+        val events=BaselineChangeCorrelation.correlate(
+            baseline(listener,accessibility),
+            JSONArray().put(app("com.example.listener")).put(app("com.example.access",true,false)))
+        assertEquals("com.example.access",events.getJSONObject(0).getString("packageName"))
+    }
 }

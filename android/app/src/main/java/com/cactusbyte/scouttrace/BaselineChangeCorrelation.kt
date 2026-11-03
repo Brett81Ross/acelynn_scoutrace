@@ -19,7 +19,8 @@ object BaselineChangeCorrelation {
         "android.permission.ACCESS_MEDIA_LOCATION",
         "android.permission.BODY_SENSORS", "android.permission.BODY_SENSORS_BACKGROUND"
     )
-    private val activeNames = setOf("accessibilityEnabled", "deviceAdminActive", "notificationListenerEnabled")
+    private val activeNames = setOf("accessibilityEnabled", "deviceAdminActive")
+    private val enabledSettingNames = setOf("notificationListenerEnabled")
     private fun entries(a: JSONArray?): Set<String> =
         (0 until (a?.length() ?: 0)).mapNotNull { i -> a?.optString(i)?.takeIf(String::isNotBlank) }.toSet()
 
@@ -37,31 +38,36 @@ object BaselineChangeCorrelation {
             val pkg = change.optString("packageName").takeIf(String::isNotBlank) ?: continue
             val app = apps[pkg] ?: continue
             val active = entries(change.optJSONArray("accessEnabled")).intersect(activeNames)
+            val settings = entries(change.optJSONArray("settingsEnabled")).intersect(enabledSettingNames)
             val grants = entries(change.optJSONArray("grantsAdded")).intersect(sensitiveGrants)
             val declarations = entries(change.optJSONArray("specialDeclarationsAdded"))
-            if (active.isEmpty() && grants.isEmpty() && declarations.isEmpty()) continue
+            if (active.isEmpty() && settings.isEmpty() && grants.isEmpty() && declarations.isEmpty()) continue
             val combined = app.optBoolean("accessibilityEnabled") && app.optBoolean("deviceAdminActive")
             val priority = when {
                 active.isNotEmpty() && combined -> "PRIORITY_REVIEW"
                 active.isNotEmpty() -> "REVIEW_ACTIVE_ACCESS"
                 grants.isNotEmpty() -> "REVIEW_NEW_GRANT"
+                settings.isNotEmpty() -> "REVIEW_ENABLED_SETTING"
                 else -> "CONTEXT_ONLY"
             }
             val explanation = when (priority) {
                 "PRIORITY_REVIEW" -> "Saved baseline comparison newly observes active access in an app with Android-reported Accessibility and Device Administrator access."
-                "REVIEW_ACTIVE_ACCESS" -> "Saved baseline comparison newly observes enabled access or a notification-listener setting; this does not prove the capability was used."
+                "REVIEW_ACTIVE_ACCESS" -> "Saved baseline comparison newly observes Android-reported enabled Accessibility or active Device Administrator access; this does not prove it was used."
                 "REVIEW_NEW_GRANT" -> "Saved baseline comparison newly observes a sensitive permission grant; a grant does not prove use."
+                "REVIEW_ENABLED_SETTING" -> "Saved baseline comparison now lists an enabled notification listener setting. This does not establish that its service connected or read notifications."
                 else -> "Saved baseline comparison found a newly declared special capability, not proof of active access."
             }
             results += JSONObject().put("packageName", pkg).put("appName", app.optString("name", pkg))
                 .put("priority", priority).put("detail", explanation)
                 .put("activeAccessEnabled", JSONArray(active.sorted()))
+                .put("enabledSettings", JSONArray(settings.sorted()))
                 .put("sensitiveGrantsAdded", JSONArray(grants.sorted()))
                 .put("specialDeclarationsAdded", JSONArray(declarations.sorted()))
                 .put("remediation", RemediationGuide.forObservedChange(priority, pkg))
                 .put("observedAtIsChangeTime", false)
         }
-        val ranking = listOf("PRIORITY_REVIEW", "REVIEW_ACTIVE_ACCESS", "REVIEW_NEW_GRANT", "CONTEXT_ONLY")
+        val ranking = listOf("PRIORITY_REVIEW", "REVIEW_ACTIVE_ACCESS", "REVIEW_NEW_GRANT",
+            "REVIEW_ENABLED_SETTING", "CONTEXT_ONLY")
         return JSONArray().apply {
             results.sortedWith(compareBy<JSONObject> {
                 ranking.indexOf(it.optString("priority"))

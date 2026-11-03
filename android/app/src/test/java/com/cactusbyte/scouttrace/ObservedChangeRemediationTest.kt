@@ -30,4 +30,11 @@ class ObservedChangeRemediationTest {
         assertTrue(r.isNull("packageName"))
         assertEquals("REVIEW_ACTIVE_ACCESS",r.getString("priority"))
     }
+
+    @Test fun listenerSettingHasDistinctSafeGuidance() {
+        val result=RemediationGuide.forObservedChange("REVIEW_ENABLED_SETTING","com.example.app")
+        assertTrue(result.getString("nextStep").contains("notification access settings"))
+        assertTrue(result.getString("nextStep").contains("does not prove"))
+        assertFalse(result.getBoolean("automaticActionTaken"))
+    }
 }

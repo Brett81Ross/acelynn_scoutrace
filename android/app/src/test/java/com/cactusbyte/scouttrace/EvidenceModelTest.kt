@@ -44,8 +44,10 @@ class EvidenceModelTest {
 
     @Test fun listenerSettingDoesNotClaimNotificationContentsWereRead() {
         val result = EvidenceModel.assess(false, false, false, false, false, false, true)
-        assertEquals("LOW", result.getString("confidence"))
+        assertEquals("INSUFFICIENT", result.getString("confidence"))
         assertFalse(result.getBoolean("correlated"))
+        assertEquals(0,result.getInt("verifiedPrivilegeCount"))
+        assertEquals(1,result.getInt("enabledSettingCount"))
         assertTrue(result.getString("explanation").contains("notification"))
     }
 

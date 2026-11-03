@@ -91,6 +91,17 @@ Validation branch only. No production deployment is authorized by this document.
 - Versioned assessment v3, permission schema v3, special-access schema v2, and observation fingerprint v4 prevent detector upgrades from fabricating timeline incidents. Historical fingerprints remain for safe cleanup.
 - No ScoutTrace permissions added and no deployment. Requires physical Android/OEM QA and platform package-visibility review.
 
+## Special-access and OEM accuracy super-large atomic batch (validation only)
+- Notification listener settings are no longer counted as active Accessibility or Device Administrator privileges; the policy and evidence models expose a separate enabled-setting count.
+- Baseline change correlation now treats newly enabled notification-listener settings as contextual observations, distinct from genuinely reported active privileged access and runtime grants.
+- Android Secure Settings parser has bounded input, malformed/unavailable states remain explicitly unknown, and DevicePolicyManager null active-admin lists continue to be handled as a legitimate empty list.
+- Baseline comparisons skip transitions to/from UNKNOWN and suppress false service-declaration removals when service metadata is missing or inaccessible; uses-permission observations remain comparable.
+- Unavailable core Accessibility/Device Administrator queries or permission-grant checks defer the v5 observation fingerprint and timeline checkpoint. Optional missing listener/keyboard settings remain explicitly incomplete, but do not block the reliable core timeline; those optional settings are excluded from its fingerprint. The validated baseline remains readable.
+- Device manufacturer labels use documented generic Android Settings guidance, not unimplemented OEM-specific APIs or fabricated menu paths.
+- Investigation UI distinguishes selected/enabled settings from connected or active service claims and explains deferred timeline checkpoints.
+- One consolidated regression package tests OEM settings, policy count separation, baseline migrations, incomplete scan handling, fingerprint stabilization, remediation and UI wiring.
+- Android Play package visibility, app permissions and deployment state are unchanged. Device tests remain required.
+
 ## Partially implemented / needs completion
 - Permission Matrix special-access categories.
 - Trusted / Watch / Ignore states are stored; Ignore/Reset are exposed in UI. Ignored lower-priority findings are hidden from display and priority callout, while HIGH CAUTION remains visible. Watch findings are prioritized within the same severity tier, with HIGH CAUTION always ahead of lower severity; device QA remains open.

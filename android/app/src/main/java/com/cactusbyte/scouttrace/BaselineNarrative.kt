@@ -15,9 +15,13 @@ object BaselineNarrative {
         val enabledPrivileges = (0 until metadata.length()).sumOf {
             metadata.optJSONObject(it)?.optJSONArray("accessEnabled")?.length() ?: 0
         }
+        val enabledSettings = (0 until metadata.length()).sumOf {
+            metadata.optJSONObject(it)?.optJSONArray("settingsEnabled")?.length() ?: 0
+        }
         val total = added.length() + removed.length() + riskChanges.length() + metadata.length()
         val headline = when {
             enabledPrivileges > 0 -> "Previously unobserved active app access needs review"
+            enabledSettings > 0 -> "Newly observed enabled app setting needs review"
             total == 0 && (modelChanged || permissionSchemaChanged) -> "ScoutTrace evidence schema updated; comparable fields checked"
             total == 0 -> "No material baseline changes detected"
             metadata.length() > 0 -> metadata.length().toString() + " app configuration change(s)"
@@ -27,7 +31,7 @@ object BaselineNarrative {
             else -> removed.length().toString() + " previously visible app(s) no longer seen"
         }
         return JSONObject().put("changed", total > 0).put("changeCount", total).put("headline", headline)
-            .put("newVisibleApps", added.length()).put("noLongerVisibleApps", removed.length()).put("riskChanges", riskChanges.length()).put("metadataChanges", metadata.length()).put("newlyEnabledPrivileges", enabledPrivileges)
+            .put("newVisibleApps", added.length()).put("noLongerVisibleApps", removed.length()).put("riskChanges", riskChanges.length()).put("metadataChanges", metadata.length()).put("newlyEnabledPrivileges", enabledPrivileges).put("newlyEnabledSettings", enabledSettings)
             .put("assessmentModelChanged", modelChanged)
             .put("permissionEvidenceSchemaChanged", permissionSchemaChanged)
             .put("detail", "Baseline differences are observations for review, not the time a permission changed. Android package visibility affects which apps ScoutTrace sees." +

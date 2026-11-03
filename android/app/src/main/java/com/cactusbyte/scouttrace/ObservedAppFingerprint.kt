@@ -7,15 +7,16 @@ import java.security.MessageDigest
 /**
  * Fingerprint Android observations only, never calculated scores or app dispositions.
  * Version the stored key when changing this canonical evidence format.
+ * Service declarations are intentionally excluded because OEM package/service metadata
+ * can disappear independently of app behavior; these remain visible in baseline diffs.
  */
 object ObservedAppFingerprint {
-    const val VERSION = 4
+    const val VERSION = 5
     private val evidenceFields = listOf(
         "packageName", "installer", "versionCode", "requestedPermissions",
-        "grantedRuntimePermissions", "unknownRuntimePermissionGrants", "declaredSpecialAccess",
+        "grantedRuntimePermissions", "unknownRuntimePermissionGrants",
         "overlayDeclared", "accessibilityState", "deviceAdminState",
-        "accessibilityEnabled", "deviceAdminActive", "notificationListenerState",
-        "selectedInputMethodState", "notificationListenerEnabled", "selectedInputMethod"
+        "accessibilityEnabled", "deviceAdminActive"
     )
 
     fun calculate(result: JSONObject): String {
