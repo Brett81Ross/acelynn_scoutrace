@@ -23,11 +23,20 @@ class DeviceSecurityScanner(private val context: Context) {
         val appRisks=JSONArray()
         val permissionMatrix=JSONObject()
         (AndroidPermissionCatalog.bucketNames + AndroidSpecialAccessCatalog.bucketNames +
-            listOf("accessibilityEnabled", "deviceAdminActive"))
+            listOf("accessibilityEnabled", "deviceAdminActive", "notificationListenerEnabled", "selectedInputMethod"))
             .forEach { permissionMatrix.put(it, JSONArray()) }
         val packages=installedPackages()
         val accessibility=enabledAccessibilityPackages()
         val admins=activeAdminPackages()
+        val listeners = try {
+            ObservedSpecialAccess.notificationListenerPackages(
+                Settings.Secure.getString(context.contentResolver, "enabled_notification_listeners"))
+        } catch (_: Exception) { null }
+        val selectedKeyboard = try {
+            ObservedSpecialAccess.selectedInputMethodPackage(
+                Settings.Secure.getString(context.contentResolver, Settings.Secure.DEFAULT_INPUT_METHOD))
+        } catch (_: Exception) { null }
+        val special = ObservedSpecialAccess.Snapshot(listeners, selectedKeyboard)
         val network=networkState()
         var otherInstallers=0
         var unknownInstallers=0
@@ -39,6 +48,8 @@ class DeviceSecurityScanner(private val context: Context) {
             val requested=pkg.requestedPermissions?.toSet().orEmpty()
             val enabledA11y=accessibility?.contains(pkg.packageName) == true
             val admin=admins?.contains(pkg.packageName) == true
+            val notificationEnabled=special.listenerEnabled(pkg.packageName) == true
+            val keyboardSelected=special.keyboardSelected(pkg.packageName) == true
             // This checks the APK declaration, not active AppOps overlay access.
             val overlay="android.permission.SYSTEM_ALERT_WINDOW" in requested
             val canInstall="android.permission.REQUEST_INSTALL_PACKAGES" in requested
@@ -75,6 +86,14 @@ class DeviceSecurityScanner(private val context: Context) {
             }
             if(enabledA11y) activeSpecial("accessibilityEnabled")
             if(admin) activeSpecial("deviceAdminActive")
+            if(notificationEnabled) permissionMatrix.getJSONArray("notificationListenerEnabled").put(
+                JSONObject().put("name",label).put("packageName",pkg.packageName)
+                    .put("state","OS_REPORTED_ENABLED_SETTING").put("granted",JSONObject.NULL)
+                    .put("note","Enabled notification-listener setting; no notification contents inspected."))
+            if(keyboardSelected) permissionMatrix.getJSONArray("selectedInputMethod").put(
+                JSONObject().put("name",label).put("packageName",pkg.packageName)
+                    .put("state","OS_REPORTED_SELECTED_SETTING").put("granted",JSONObject.NULL)
+                    .put("note","Selected input method; no keystrokes inspected."))
 
             val decision = AppRiskPolicy.evaluate(AppRiskPolicy.Signals(
                 otherInstaller = side,
@@ -82,9 +101,10 @@ class DeviceSecurityScanner(private val context: Context) {
                 deviceAdminActive = admin,
                 overlayDeclared = overlay,
                 installRequestsDeclared = canInstall,
-                debuggable = debuggable
+                debuggable = debuggable,
+                notificationListenerEnabled = notificationEnabled
             ))
-            val evidence = EvidenceModel.assess(side,enabledA11y,admin,overlay,canInstall,debuggable)
+            val evidence = EvidenceModel.assess(side,enabledA11y,admin,overlay,canInstall,debuggable,notificationEnabled)
             val level = decision.level
             val reasons = decision.reasons
             appRisks.put(JSONObject().put("name",appLabel(pkg)).put("packageName",pkg.packageName).put("level",level).put("score",decision.score).put("assessmentRule",decision.rule)
@@ -93,6 +113,12 @@ class DeviceSecurityScanner(private val context: Context) {
                 .put("contextIndicatorCount",decision.contextIndicatorCount).put("installer",installer?:"unknown").put("installSourceStatus",source.name).put("versionCode",if(Build.VERSION.SDK_INT>=28)pkg.longVersionCode else @Suppress("DEPRECATION") pkg.versionCode.toLong()).put("requestedPermissions",JSONArray(requested.sorted()))
                 .put("grantedRuntimePermissions",AndroidPermissionCatalog.grantedNames(observedPermissions))
                 .put("unknownRuntimePermissionGrants",AndroidPermissionCatalog.unavailableNames(observedPermissions))
+                .put("notificationListenerState",special.listenerState(pkg.packageName))
+                .put("selectedInputMethodState",special.keyboardState(pkg.packageName))
+                .apply {
+                    if (special.listenerPackages != null) put("notificationListenerEnabled", notificationEnabled)
+                    if (special.selectedInputMethodPackage != null) put("selectedInputMethod", keyboardSelected)
+                }
                 .put("declaredSpecialAccess",AndroidSpecialAccessCatalog.declaredNames(declaredSpecial))
                 .put("specialAccessEvidence",AndroidSpecialAccessCatalog.evidence(declaredSpecial))
                 .put("accessibilityState",if(accessibility==null) "UNKNOWN" else if(enabledA11y) "ENABLED" else "NOT_OBSERVED")
@@ -123,11 +149,14 @@ class DeviceSecurityScanner(private val context: Context) {
             .put("level",highest)
             .put("assessmentModelVersion", AppRiskPolicy.VERSION)
             .put("permissionEvidenceSchemaVersion", AndroidPermissionCatalog.SCHEMA_VERSION)
+            .put("specialAccessEvidenceSchemaVersion", ObservedSpecialAccess.SCHEMA_VERSION)
             .put("specialAccessCoverage",JSONObject()
                 .put("accessibilityQuery",if(accessibility==null) "UNAVAILABLE" else "ANDROID_REPORTED")
                 .put("deviceAdminQuery",if(admins==null) "UNAVAILABLE" else "ANDROID_REPORTED")
+                .put("notificationListenerSetting",if(listeners==null) "UNAVAILABLE" else "ANDROID_SETTING_REPORTED")
+                .put("selectedKeyboardSetting",if(selectedKeyboard==null) "UNAVAILABLE" else "ANDROID_SETTING_REPORTED")
                 .put("otherAppSpecialAppOps","NOT_VERIFIED")
-                .put("note","Special-access and bound-service declarations do not prove active use. Android does not provide ScoutTrace with an authoritative cross-app AppOps inventory."))
+                .put("note","Notification-listener and selected keyboard settings do not prove any message or keystroke was read. Other applications' special AppOps remain unverified."))
             .put("summary","Analyzed ${appRisks.length()} non-system apps from ${packages.size} Android-visible packages. Findings are indicators for review, not proof of malware.")
             .put("visibility",VisibilityStatus(context).describe(packages.size))
             .put("coverage",ScanCoverage.packageCoverage(packages.size))

@@ -69,4 +69,17 @@ class AndroidPermissionCatalogTest {
         assertEquals("android.permission.ACCESS_COARSE_LOCATION",
             AndroidPermissionCatalog.grantedNames(observed).getString(0))
     }
+
+    @Test fun expandedTelephonyAndNearbyPermissionsRespectAndroidApiLevels() {
+        assertTrue(AndroidPermissionCatalog.bucketNames.containsAll(listOf(
+            "smsReceive", "mmsReceive", "phoneNumbers", "answerCalls",
+            "bluetoothAdvertise", "uwbRanging", "mediaLocation")))
+        val requested = setOf("android.permission.RECEIVE_SMS",
+            "android.permission.BLUETOOTH_ADVERTISE", "android.permission.UWB_RANGING")
+        val old = AndroidPermissionCatalog.observe(requested, 29) { true }
+        assertEquals(listOf("smsReceive"), old.map { it.spec.bucket })
+        val modern = AndroidPermissionCatalog.observe(requested, 35) { true }
+        assertEquals(3, modern.size)
+    }
+
 }

@@ -9,12 +9,13 @@ import java.security.MessageDigest
  * Version the stored key when changing this canonical evidence format.
  */
 object ObservedAppFingerprint {
-    const val VERSION = 3
+    const val VERSION = 4
     private val evidenceFields = listOf(
         "packageName", "installer", "versionCode", "requestedPermissions",
         "grantedRuntimePermissions", "unknownRuntimePermissionGrants", "declaredSpecialAccess",
         "overlayDeclared", "accessibilityState", "deviceAdminState",
-        "accessibilityEnabled", "deviceAdminActive"
+        "accessibilityEnabled", "deviceAdminActive", "notificationListenerState",
+        "selectedInputMethodState", "notificationListenerEnabled", "selectedInputMethod"
     )
 
     fun calculate(result: JSONObject): String {

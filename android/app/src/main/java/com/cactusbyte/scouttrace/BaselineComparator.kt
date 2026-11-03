@@ -12,7 +12,8 @@ object BaselineComparator {
         "versionCode", "installer", "installSourceStatus", "requestedPermissions",
         "grantedRuntimePermissions", "unknownRuntimePermissionGrants", "declaredSpecialAccess",
         "overlayDeclared", "accessibilityEnabled", "deviceAdminActive",
-        "accessibilityState", "deviceAdminState"
+        "accessibilityState", "deviceAdminState", "notificationListenerState",
+        "selectedInputMethodState", "notificationListenerEnabled", "selectedInputMethod"
     )
 
     fun compare(before: JSONObject, after: JSONObject, savedAt: Long): JSONObject {
@@ -28,6 +29,9 @@ object BaselineComparator {
         val priorPermissions = before.optInt("permissionEvidenceSchemaVersion", 1)
         val currentPermissions = after.optInt("permissionEvidenceSchemaVersion", 1)
         val permissionSchemaChanged = priorPermissions != currentPermissions
+        val specialSchemaChanged =
+            before.optInt("specialAccessEvidenceSchemaVersion", 1) !=
+                after.optInt("specialAccessEvidenceSchemaVersion", 1)
         val risks = JSONArray()
         val metadata = JSONArray()
         (beforePkgs intersect afterPkgs).sorted().forEach { pkg ->
@@ -47,7 +51,10 @@ object BaselineComparator {
                 val newObservationField = field in setOf("grantedRuntimePermissions",
                     "unknownRuntimePermissionGrants", "declaredSpecialAccess",
                     "accessibilityState", "deviceAdminState")
+                val newSpecialField = field in setOf("notificationListenerState",
+                    "selectedInputMethodState", "notificationListenerEnabled", "selectedInputMethod")
                 if ((!permissionSchemaChanged || !newObservationField) &&
+                    (!specialSchemaChanged || !newSpecialField) &&
                     old.has(field) && now.has(field) &&
                     comparableValue(old.opt(field)) != comparableValue(now.opt(field))) {
                     fields.put(field)
@@ -69,7 +76,7 @@ object BaselineComparator {
                 }
                 val enabled = JSONArray()
                 val disabled = JSONArray()
-                listOf("accessibilityEnabled", "deviceAdminActive").forEach { field ->
+                listOf("accessibilityEnabled", "deviceAdminActive", "notificationListenerEnabled").forEach { field ->
                     if (old.has(field) && now.has(field) &&
                         old.optBoolean(field) != now.optBoolean(field)) {
                         if (now.optBoolean(field)) enabled.put(field) else disabled.put(field)
@@ -88,6 +95,7 @@ object BaselineComparator {
             .put("metadataChanges", metadata)
             .put("assessmentModelChanged", modelChanged)
             .put("permissionEvidenceSchemaChanged", permissionSchemaChanged)
+            .put("specialAccessEvidenceSchemaChanged", specialSchemaChanged)
             .put("levelChanged", !modelChanged && before.optString("level") != after.optString("level"))
     }
 

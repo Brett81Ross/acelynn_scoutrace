@@ -9,7 +9,7 @@ import org.json.JSONObject
  * AppOps, one-time grants, scoped media selections and OEM policy can further limit access.
  */
 object AndroidPermissionCatalog {
-    const val SCHEMA_VERSION = 2
+    const val SCHEMA_VERSION = 3
 
     data class Spec(val bucket: String, val permission: String, val minSdk: Int = 26,
                     val maxSdk: Int = Int.MAX_VALUE, val scope: String = "RUNTIME_GRANT_ONLY")
@@ -32,7 +32,13 @@ object AndroidPermissionCatalog {
         Spec("contactsWrite", "android.permission.WRITE_CONTACTS"),
         Spec("sms", "android.permission.READ_SMS"),
         Spec("smsSend", "android.permission.SEND_SMS"),
+        Spec("smsReceive", "android.permission.RECEIVE_SMS"),
+        Spec("mmsReceive", "android.permission.RECEIVE_MMS"),
         Spec("phone", "android.permission.READ_PHONE_STATE"),
+        Spec("phoneNumbers", "android.permission.READ_PHONE_NUMBERS"),
+        Spec("answerCalls", "android.permission.ANSWER_PHONE_CALLS"),
+        Spec("voicemail", "com.android.voicemail.permission.READ_VOICEMAIL",
+            scope = "PRIVILEGED_OR_ROLE_RESTRICTED"),
         Spec("callLogs", "android.permission.READ_CALL_LOG"),
         Spec("calendar", "android.permission.READ_CALENDAR"),
         Spec("calendarWrite", "android.permission.WRITE_CALENDAR"),
@@ -41,11 +47,14 @@ object AndroidPermissionCatalog {
         Spec("activityRecognition", "android.permission.ACTIVITY_RECOGNITION", minSdk = 29),
         Spec("bluetoothScan", "android.permission.BLUETOOTH_SCAN", minSdk = 31),
         Spec("bluetoothConnect", "android.permission.BLUETOOTH_CONNECT", minSdk = 31),
+        Spec("bluetoothAdvertise", "android.permission.BLUETOOTH_ADVERTISE", minSdk = 31),
+        Spec("uwbRanging", "android.permission.UWB_RANGING", minSdk = 31),
         Spec("nearbyWifi", "android.permission.NEARBY_WIFI_DEVICES", minSdk = 33),
         Spec("notifications", "android.permission.POST_NOTIFICATIONS", minSdk = 33),
         Spec("photos", "android.permission.READ_MEDIA_IMAGES", minSdk = 33, scope = "MEDIA_GRANT_NOT_FULL_LIBRARY_PROOF"),
         Spec("videos", "android.permission.READ_MEDIA_VIDEO", minSdk = 33, scope = "MEDIA_GRANT_NOT_FULL_LIBRARY_PROOF"),
         Spec("audioFiles", "android.permission.READ_MEDIA_AUDIO", minSdk = 33),
+        Spec("mediaLocation", "android.permission.ACCESS_MEDIA_LOCATION", minSdk = 29),
         Spec("selectedPhotos", "android.permission.READ_MEDIA_VISUAL_USER_SELECTED",
             minSdk = 34, scope = "USER_SELECTED_PHOTOS_AND_VIDEOS_ONLY"),
         Spec("legacyStorage", "android.permission.READ_EXTERNAL_STORAGE",

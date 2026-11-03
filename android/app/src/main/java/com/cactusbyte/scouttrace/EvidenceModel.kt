@@ -13,11 +13,12 @@ object EvidenceModel {
         admin: Boolean,
         overlay: Boolean,
         installPackages: Boolean,
-        debuggable: Boolean
+        debuggable: Boolean,
+        notificationListener: Boolean = false
     ): JSONObject {
         // 'sideloaded' means an installer other than a recognized store ID was observed;
         // it does not prove how the APK was delivered.
-        val verifiedPrivilegeCount = listOf(accessibility, admin).count { it }
+        val verifiedPrivilegeCount = listOf(accessibility, admin, notificationListener).count { it }
         val declaredCapabilityCount = listOf(overlay, installPackages).count { it }
         val contextCount = listOf(sideloaded, debuggable).count { it }
         val indicatorCount = verifiedPrivilegeCount + declaredCapabilityCount + contextCount
@@ -43,7 +44,7 @@ object EvidenceModel {
         }
         val explanation = when {
             correlated -> "Android reports both an enabled Accessibility service and an active Device Administrator. Verify that this combination is expected; it is not proof of malware."
-            verifiedPrivilegeCount > 0 -> "Android reports active privileged access. Other signals may be only APK declarations or installer metadata; those do not verify present-day access."
+            verifiedPrivilegeCount > 0 -> "Android reports enabled privileged access or a notification-listener setting. This does not prove that notifications were read or any access was used."
             indicatorCount > 0 -> "Observed signals are declarations, build flags, or installer metadata. No active Accessibility or Device Administrator privilege was confirmed for this app."
             else -> "No listed indicators were observable. Limited Android visibility does not prove an app is safe."
         }

@@ -69,7 +69,17 @@ class ObservedAppFingerprintTest {
     }
 
     @Test fun modelVersionIsExplicitlyBumpedForNewEvidenceSchema() {
-        assertEquals(3, ObservedAppFingerprint.VERSION)
-        assertEquals(2, AndroidPermissionCatalog.SCHEMA_VERSION)
+        assertEquals(4, ObservedAppFingerprint.VERSION)
+        assertEquals(3, AndroidPermissionCatalog.SCHEMA_VERSION)
     }
+
+    @Test fun notificationAndKeyboardSettingChangesAreObservedNotDerivedScores() {
+        val before = app("com.example.app").put("notificationListenerEnabled", false)
+            .put("selectedInputMethod", false)
+        val after = JSONObject(before.toString()).put("notificationListenerEnabled", true)
+            .put("selectedInputMethod", true)
+        assertNotEquals(ObservedAppFingerprint.calculate(snapshot(before)),
+            ObservedAppFingerprint.calculate(snapshot(after)))
+    }
+
 }

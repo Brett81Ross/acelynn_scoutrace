@@ -83,6 +83,14 @@ Validation branch only. No production deployment is authorized by this document.
 - Regression tests verify filtered correlation and clean-risk permission changes; injected JavaScript CI checks the panel and priority wiring.
 - Physical device layout, TalkBack and Galaxy Fold QA remain open. No deployment authorized.
 
+## Additional Android Settings and permission observations — validation branch only
+- Read-only Android Secure Settings inspection for enabled notification-listener components and the selected input method. Null, inaccessible, and malformed settings stay UNKNOWN.
+- An enabled listener setting is contextual access evidence, not proof any notification contents were received. Keyboard selection is informational and never raises risk severity.
+- Android Permission Matrix and saved-baseline Security Diff now identify listener setting changes and keyboard selection changes without implying recording or surveillance.
+- Expanded permission catalog includes SMS/MMS receiving, phone numbers and call-answering, voicemail, Bluetooth advertising, ultra-wideband ranging, and media-location access, with minimum API levels.
+- Versioned assessment v3, permission schema v3, special-access schema v2, and observation fingerprint v4 prevent detector upgrades from fabricating timeline incidents. Historical fingerprints remain for safe cleanup.
+- No ScoutTrace permissions added and no deployment. Requires physical Android/OEM QA and platform package-visibility review.
+
 ## Partially implemented / needs completion
 - Permission Matrix special-access categories.
 - Trusted / Watch / Ignore states are stored; Ignore/Reset are exposed in UI. Ignored lower-priority findings are hidden from display and priority callout, while HIGH CAUTION remains visible. Watch findings are prioritized within the same severity tier, with HIGH CAUTION always ahead of lower severity; device QA remains open.

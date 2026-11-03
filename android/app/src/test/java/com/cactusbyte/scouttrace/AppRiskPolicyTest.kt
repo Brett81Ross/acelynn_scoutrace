@@ -50,4 +50,26 @@ class AppRiskPolicyTest {
         assertEquals("NO_LISTED_INDICATORS", result.rule)
         assertTrue(result.reasons.isEmpty())
     }
+
+    @Test fun notificationListenerAloneRemainsReviewNotMalwareCaution() {
+        val result = AppRiskPolicy.evaluate(AppRiskPolicy.Signals(notificationListenerEnabled = true))
+        assertEquals("REVIEW", result.level)
+        assertEquals("ENABLED_NOTIFICATION_LISTENER_CONTEXT", result.rule)
+        assertEquals(1, result.activePrivilegeCount)
+    }
+
+    @Test fun accessibilityWithListenerIsElevatedButNotHighCaution() {
+        val result = AppRiskPolicy.evaluate(AppRiskPolicy.Signals(
+            accessibilityEnabled = true, notificationListenerEnabled = true))
+        assertEquals("ELEVATED", result.level)
+    }
+
+    @Test fun bothOriginalStrongPrivilegesRemainHighCaution() {
+        val result = AppRiskPolicy.evaluate(AppRiskPolicy.Signals(
+            accessibilityEnabled = true, deviceAdminActive = true,
+            notificationListenerEnabled = true))
+        assertEquals("HIGH CAUTION", result.level)
+        assertEquals(3, result.activePrivilegeCount)
+    }
+
 }

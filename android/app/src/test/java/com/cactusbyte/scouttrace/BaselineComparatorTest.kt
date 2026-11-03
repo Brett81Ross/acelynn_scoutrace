@@ -123,4 +123,40 @@ class BaselineComparatorTest {
         val fields = diff.getJSONArray("metadataChanges").getJSONObject(0).getJSONArray("fields")
         assertEquals("declaredSpecialAccess", fields.getString(0))
     }
+
+    @Test fun enabledListenerProducesBaselineRelativeAccessChange() {
+        val old = snapshot(app("com.example.app")
+            .put("notificationListenerEnabled", false))
+            .put("specialAccessEvidenceSchemaVersion", ObservedSpecialAccess.SCHEMA_VERSION)
+        val next = snapshot(app("com.example.app")
+            .put("notificationListenerEnabled", true))
+            .put("specialAccessEvidenceSchemaVersion", ObservedSpecialAccess.SCHEMA_VERSION)
+        val event = BaselineComparator.compare(old, next, 12)
+            .getJSONArray("metadataChanges").getJSONObject(0)
+        assertEquals("notificationListenerEnabled",
+            event.getJSONArray("accessEnabled").getString(0))
+    }
+
+    @Test fun newSpecialAccessSchemaNeverFabricatesListenerGrant() {
+        val old = snapshot(app("com.example.app")
+            .put("notificationListenerEnabled", false))
+            .put("specialAccessEvidenceSchemaVersion", 1)
+        val next = snapshot(app("com.example.app")
+            .put("notificationListenerEnabled", true))
+            .put("specialAccessEvidenceSchemaVersion", ObservedSpecialAccess.SCHEMA_VERSION)
+        val delta = BaselineComparator.compare(old, next, 12)
+        assertTrue(delta.getBoolean("specialAccessEvidenceSchemaChanged"))
+        assertEquals(0, delta.getJSONArray("metadataChanges").length())
+    }
+
+    @Test fun selectionOfKeyboardNeverBecomesNewPrivilegedAccess() {
+        val old = snapshot(app("com.example.app").put("selectedInputMethod", false))
+            .put("specialAccessEvidenceSchemaVersion", ObservedSpecialAccess.SCHEMA_VERSION)
+        val next = snapshot(app("com.example.app").put("selectedInputMethod", true))
+            .put("specialAccessEvidenceSchemaVersion", ObservedSpecialAccess.SCHEMA_VERSION)
+        val event = BaselineComparator.compare(old, next, 12)
+            .getJSONArray("metadataChanges").getJSONObject(0)
+        assertFalse(event.has("accessEnabled"))
+    }
+
 }

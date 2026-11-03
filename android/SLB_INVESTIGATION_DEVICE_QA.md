@@ -61,6 +61,13 @@ Status: **validation branch only; no production deployment, merge, or Play publi
 46. IGNORE suppresses lower-severity correlated changes, HIGH CAUTION remains, and no-baseline scan displays honest setup guidance.
 47. Check dark/light contrast, Galaxy Fold cover/unfolded screens, scrolling to the exact finding, detail expansion and TalkBack announcements.
 
+32. Notification listeners: enable a trusted listener and confirm the OS-reported enabled setting appears without claiming notification content was read. Distinguish installed service declaration, enabled listener, and UNKNOWN.
+33. Keyboard: switch the selected input method in Android settings. The selected keyboard appears as informational evidence, never keystroke recording or an elevated malware verdict.
+34. Failure modes: missing/malformed listener or selected-input-method setting must remain UNKNOWN; a malformed partial list must not be accepted as complete.
+35. New baseline correlation: a newly enabled notification listener is contextually prioritized without inferring when the listener was enabled. Keyboard selection does not become privileged-access correlation.
+36. Validate API gating for SMS/MMS, phone numbers, answer calls, Bluetooth advertising, UWB ranging, and media-location observations on both older and newer Android.
+37. Migration: permission schema v2/v3 and special access schema v1/v2 changes must not fabricate grant events; fingerprint v4 establishes a new checkpoint without a false timeline alert.
+
 ## Release gate
 CI compilation, unit tests, lint, APK/AAB and manifest checks are **necessary but not sufficient**. Device evidence (screenshots, Android version, test steps, results) and manual review of the ten-screen design contract are required. No device QA is claimed by this document.
 

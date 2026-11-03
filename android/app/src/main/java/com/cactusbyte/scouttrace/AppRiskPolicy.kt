@@ -6,7 +6,7 @@ package com.cactusbyte.scouttrace
  * Increment VERSION when these classification rules change.
  */
 object AppRiskPolicy {
-    const val VERSION = 2
+    const val VERSION = 3
 
     data class Signals(
         val otherInstaller: Boolean = false,
@@ -14,7 +14,8 @@ object AppRiskPolicy {
         val deviceAdminActive: Boolean = false,
         val overlayDeclared: Boolean = false,
         val installRequestsDeclared: Boolean = false,
-        val debuggable: Boolean = false
+        val debuggable: Boolean = false,
+        val notificationListenerEnabled: Boolean = false
     )
 
     data class Decision(
@@ -54,14 +55,21 @@ object AppRiskPolicy {
             score += 1
             reasons += "app is marked debuggable"
         }
-        val active = listOf(signals.accessibilityEnabled, signals.deviceAdminActive).count { it }
+        if (signals.notificationListenerEnabled) {
+            score += 2
+            reasons += "Android setting lists an enabled notification listener; actual notification receipt not observed"
+        }
+        val active = listOf(signals.accessibilityEnabled, signals.deviceAdminActive,
+            signals.notificationListenerEnabled).count { it }
         val declared = listOf(signals.overlayDeclared, signals.installRequestsDeclared).count { it }
         val context = listOf(signals.otherInstaller, signals.debuggable).count { it }
-        val supporting = declared + context
+        val supporting = declared + context + if (signals.notificationListenerEnabled) 1 else 0
+        val activeStrong = signals.accessibilityEnabled || signals.deviceAdminActive
         val rule = when {
-            active == 2 -> "TWO_ACTIVE_PRIVILEGES"
-            active == 1 && supporting >= 1 -> "ACTIVE_PRIVILEGE_WITH_CONTEXT"
-            active == 1 -> "SINGLE_ACTIVE_PRIVILEGE"
+            signals.accessibilityEnabled && signals.deviceAdminActive -> "TWO_ACTIVE_PRIVILEGES"
+            activeStrong && supporting >= 1 -> "ACTIVE_PRIVILEGE_WITH_CONTEXT"
+            activeStrong -> "SINGLE_ACTIVE_PRIVILEGE"
+            signals.notificationListenerEnabled -> "ENABLED_NOTIFICATION_LISTENER_CONTEXT"
             declared > 0 && context > 0 -> "DECLARATIONS_AND_CONTEXT_ONLY"
             declared > 0 -> "DECLARATIONS_ONLY"
             context > 0 -> "INSTALLER_OR_BUILD_CONTEXT_ONLY"

@@ -7,7 +7,7 @@ object RemediationGuide {
     fun forObservedChange(priority: String, packageName: String?): JSONObject {
         val step = when(priority) {
             "PRIORITY_REVIEW" -> "Review Android App Info, Accessibility and Device Administrator settings. If unwanted monitoring is possible, plan for personal safety before changing or removing access."
-            "REVIEW_ACTIVE_ACCESS" -> "Verify the Android-reported active Accessibility or Device Administrator capability and whether you recognize it before making changes."
+            "REVIEW_ACTIVE_ACCESS" -> "Verify enabled Accessibility, Device Administrator, or notification-listener access and whether you recognize this app before changing settings."
             "REVIEW_NEW_GRANT" -> "Check Android App Info for the newly reported sensitive permission and decide whether the app needs it."
             else -> "Review the new service or permission declaration. A declaration does not establish active special access."
         }

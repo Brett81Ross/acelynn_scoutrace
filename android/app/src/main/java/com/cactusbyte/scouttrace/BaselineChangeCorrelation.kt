@@ -12,9 +12,14 @@ object BaselineChangeCorrelation {
         "android.permission.READ_CONTACTS", "android.permission.READ_CALL_LOG",
         "android.permission.READ_MEDIA_IMAGES", "android.permission.READ_MEDIA_VIDEO",
         "android.permission.READ_MEDIA_VISUAL_USER_SELECTED",
+        "android.permission.RECEIVE_SMS", "android.permission.RECEIVE_MMS",
+        "android.permission.SEND_SMS", "android.permission.READ_PHONE_NUMBERS",
+        "android.permission.ANSWER_PHONE_CALLS",
+        "com.android.voicemail.permission.READ_VOICEMAIL",
+        "android.permission.ACCESS_MEDIA_LOCATION",
         "android.permission.BODY_SENSORS", "android.permission.BODY_SENSORS_BACKGROUND"
     )
-    private val activeNames = setOf("accessibilityEnabled", "deviceAdminActive")
+    private val activeNames = setOf("accessibilityEnabled", "deviceAdminActive", "notificationListenerEnabled")
     private fun entries(a: JSONArray?): Set<String> =
         (0 until (a?.length() ?: 0)).mapNotNull { i -> a?.optString(i)?.takeIf(String::isNotBlank) }.toSet()
 
@@ -44,7 +49,7 @@ object BaselineChangeCorrelation {
             }
             val explanation = when (priority) {
                 "PRIORITY_REVIEW" -> "Saved baseline comparison newly observes active access in an app with Android-reported Accessibility and Device Administrator access."
-                "REVIEW_ACTIVE_ACCESS" -> "Saved baseline comparison newly observes an Android-reported active privilege."
+                "REVIEW_ACTIVE_ACCESS" -> "Saved baseline comparison newly observes enabled access or a notification-listener setting; this does not prove the capability was used."
                 "REVIEW_NEW_GRANT" -> "Saved baseline comparison newly observes a sensitive permission grant; a grant does not prove use."
                 else -> "Saved baseline comparison found a newly declared special capability, not proof of active access."
             }

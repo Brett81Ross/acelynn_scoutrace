@@ -77,4 +77,13 @@ class BaselineChangeCorrelationTest {
         assertEquals(1,result.length())
         assertEquals(1,result.getJSONObject(0).getJSONArray("specialDeclarationsAdded").length())
     }
+
+    @Test fun newlyEnabledListenerIsReviewNotProofOfNotificationReading() {
+        val events = BaselineChangeCorrelation.correlate(
+            baseline(change("com.example.app", active = arrayOf("notificationListenerEnabled"))),
+            JSONArray().put(app("com.example.app")))
+        assertEquals("REVIEW_ACTIVE_ACCESS", events.getJSONObject(0).getString("priority"))
+        assertTrue(events.getJSONObject(0).getString("detail").contains("does not prove"))
+    }
+
 }
