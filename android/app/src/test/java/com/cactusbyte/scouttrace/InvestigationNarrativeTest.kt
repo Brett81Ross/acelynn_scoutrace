@@ -74,4 +74,42 @@ class InvestigationNarrativeTest {
         assertEquals("com.example.high",result.getJSONArray("visibleBaselineChangePriorities")
             .getJSONObject(0).getString("packageName"))
     }
+
+    @Test fun correlatedChangeBreaksSameSeverityTieBeforeWatch() {
+        val change=JSONObject().put("packageName","com.example.changed")
+            .put("grantsAdded",JSONArray().put("android.permission.RECORD_AUDIO"))
+        val input=JSONObject().put("level","REVIEW")
+            .put("findings",JSONArray()
+                .put(finding("REVIEW","com.example.watched","Watch app"))
+                .put(finding("REVIEW","com.example.changed","Check new grant")))
+            .put("appRisks",JSONArray()
+                .put(JSONObject().put("packageName","com.example.watched").put("level","REVIEW"))
+                .put(JSONObject().put("packageName","com.example.changed").put("level","REVIEW")))
+            .put("baseline",JSONObject().put("exists",true)
+                .put("metadataChanges",JSONArray().put(change)))
+            .put("dispositions",JSONObject().put("com.example.watched","WATCH"))
+        val output=InvestigationNarrative.build(input)
+        val first=output.getJSONArray("priorities").getJSONObject(0)
+        assertEquals("com.example.changed",first.getString("packageName"))
+        assertEquals("REVIEW_NEW_GRANT",first.getString("baselineChangePriority"))
+        assertTrue(first.getString("nextStep").contains("Android App Info"))
+    }
+
+    @Test fun highCautionStillBeatsCorrelatedReviewAndIgnoredReviewStaysHidden() {
+        val input=JSONObject().put("level","HIGH CAUTION")
+            .put("findings",JSONArray()
+                .put(finding("REVIEW","com.example.changed","Grant review"))
+                .put(finding("HIGH CAUTION","com.example.urgent","Urgent review")))
+            .put("appRisks",JSONArray().put(JSONObject()
+                .put("packageName","com.example.changed").put("level","REVIEW")))
+            .put("baseline",JSONObject().put("exists",true).put("metadataChanges",JSONArray()
+                .put(JSONObject().put("packageName","com.example.changed")
+                    .put("grantsAdded",JSONArray().put("android.permission.CAMERA")))))
+            .put("dispositions",JSONObject().put("com.example.changed","IGNORE"))
+        val output=InvestigationNarrative.build(input)
+        assertEquals(1,output.getJSONArray("priorities").length())
+        assertEquals("com.example.urgent",output.getJSONArray("priorities")
+            .getJSONObject(0).getString("packageName"))
+        assertEquals(0,output.getInt("visibleBaselineChangePriorityCount"))
+    }
 }

@@ -125,3 +125,9 @@ Validation branch only. No production deployment is authorized by this document.
 
 ## Release boundary
 Do not merge to main, deploy production, or upload to Google Play until the open implementation items that define the chosen release scope are resolved and the validation gates pass.
+
+## Dashboard correlation wiring QA (validation branch only)
+- Android investigation cards now follow native severity-first correlation ordering, including baseline changes before WATCH within the same severity.
+- Finding cards and the recommended next-action panel expose related baseline evidence, with explicit non-malware caveats.
+- Review priority action opens the associated evidence detail, falling back to the correlated change card when no matching finding is rendered.
+- Injected WebView JavaScript contract checks and JVM priority/remediation regression tests cover the new wiring. Real-device QA is still required; no production changes.

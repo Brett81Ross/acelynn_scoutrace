@@ -36,7 +36,9 @@ def main() -> int:
                   "priority?.nextStep", "Review access change",
                   "Newly observed access and capabilities",
                   "REVIEW_ENABLED_SETTING", "enabledSettings",
-                  "observationCheckpoint", "checkpointNote"): 
+                  "observationCheckpoint", "checkpointNote",
+                  "changeByPackage", "priorityOrder", "Related baseline evidence:",
+                  "Baseline change:", "const selected=row||fallback;"): 
         if token not in match.group(1):
             print("ERROR: Correlated evidence dashboard missing: " + token, file=sys.stderr)
             return 1
