@@ -32,7 +32,7 @@ checks = {
 
 # Observation fingerprints are sensitive local investigation records. A successful
 # checkpoint must depend on a checked, durable encrypted write.
-protected_keys = re.search(r"private val keys\\s*=\\s*setOf\\((.*?)\\)", STORE, re.DOTALL)
+protected_keys = re.search(r"private val keys\s*=\s*setOf\((.*?)\)", STORE, re.DOTALL)
 checks["Observation fingerprint V5 uses encrypted storage"] = (
     protected_keys is not None
     and '"observationFingerprintV5"' in protected_keys.group(1)
