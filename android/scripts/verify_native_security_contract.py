@@ -12,6 +12,7 @@ SOURCE = ROOT / "app/src/main/java/com/cactusbyte/scouttrace"
 MAIN = (SOURCE / "MainActivity.kt").read_text(encoding="utf-8")
 BRIDGE = (SOURCE / "ScoutTraceBridge.kt").read_text(encoding="utf-8")
 INSPECTOR = (SOURCE / "ApkInspector.kt").read_text(encoding="utf-8")
+STORE = (SOURCE / "SecureInvestigationStore.kt").read_text(encoding="utf-8")
 MANIFEST = (ROOT / "app/src/main/AndroidManifest.xml").read_text(encoding="utf-8")
 
 checks = {
@@ -27,6 +28,22 @@ checks = {
     "Backups disabled without restore policy": 'android:allowBackup="false"' in MANIFEST,
     "Bounded APK byte copy": "ApkStreamCopy.copy(input, output)" in INSPECTOR,
 }
+
+
+# Observation fingerprints are sensitive local investigation records. A successful
+# checkpoint must depend on a checked, durable encrypted write.
+protected_keys = re.search(r"private val keys\\s*=\\s*setOf\\((.*?)\\)", STORE, re.DOTALL)
+checks["Observation fingerprint V5 uses encrypted storage"] = (
+    protected_keys is not None
+    and '"observationFingerprintV5"' in protected_keys.group(1)
+    and "AES/GCM/NoPadding" in STORE
+)
+checks["Encrypted observation writes verify persistence"] = (
+    'check(prefs.edit().putString(name, "gcm1:"' in STORE
+    and 'secure.putString("observationFingerprintV5", fingerprint)' in BRIDGE
+    and BRIDGE.index('secure.putString("observationFingerprintV5", fingerprint)')
+        < BRIDGE.index('result.put("observationCheckpoint"')
+)
 
 for method, destructive_op in (
     ("clearSecurityHistory", 'secure.remove("timeline", "baseline"'),

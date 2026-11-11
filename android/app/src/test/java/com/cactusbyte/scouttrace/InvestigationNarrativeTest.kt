@@ -112,4 +112,50 @@ class InvestigationNarrativeTest {
             .getJSONObject(0).getString("packageName"))
         assertEquals(0,output.getInt("visibleBaselineChangePriorityCount"))
     }
+
+    @Test fun newlyEnabledNotificationListenerPrecedesWatchInSameSeverity() {
+        val listener = "com.example.listener"
+        val watched = "com.example.watched"
+        val input = JSONObject().put("level", "REVIEW")
+            .put("findings", JSONArray()
+                .put(finding("REVIEW", watched, "Review watched"))
+                .put(finding("REVIEW", listener, "Review listener setting")))
+            .put("appRisks", JSONArray()
+                .put(JSONObject().put("packageName", watched).put("level", "REVIEW"))
+                .put(JSONObject().put("packageName", listener).put("level", "REVIEW")))
+            .put("baseline", JSONObject().put("exists", true)
+                .put("metadataChanges", JSONArray().put(JSONObject()
+                    .put("packageName", listener)
+                    .put("settingsEnabled", JSONArray().put("notificationListenerEnabled")))))
+            .put("dispositions", JSONObject().put(watched, "WATCH"))
+        val priorities = InvestigationNarrative.build(input).getJSONArray("priorities")
+        assertEquals(listener, priorities.getJSONObject(0).getString("packageName"))
+        assertEquals("REVIEW_ENABLED_SETTING", priorities.getJSONObject(0)
+            .getString("baselineChangePriority"))
+        assertEquals(watched, priorities.getJSONObject(1).getString("packageName"))
+    }
+
+    @Test fun declarationOnlyCorrelationPrecedesWatchWithoutMalwareVerdict() {
+        val declared = "com.example.declared"
+        val watched = "com.example.watched"
+        val input = JSONObject().put("level", "REVIEW")
+            .put("findings", JSONArray()
+                .put(finding("REVIEW", watched, "Review watched"))
+                .put(finding("REVIEW", declared, "Review declaration")))
+            .put("appRisks", JSONArray()
+                .put(JSONObject().put("packageName", watched).put("level", "REVIEW"))
+                .put(JSONObject().put("packageName", declared).put("level", "REVIEW")))
+            .put("baseline", JSONObject().put("exists", true)
+                .put("metadataChanges", JSONArray().put(JSONObject()
+                    .put("packageName", declared)
+                    .put("specialDeclarationsAdded", JSONArray().put("vpnServiceDeclared")))))
+            .put("dispositions", JSONObject().put(watched, "WATCH"))
+        val output = InvestigationNarrative.build(input)
+        val priorities = output.getJSONArray("priorities")
+        assertEquals(declared, priorities.getJSONObject(0).getString("packageName"))
+        assertEquals("CONTEXT_ONLY", priorities.getJSONObject(0).getString("baselineChangePriority"))
+        assertEquals("REVIEW", priorities.getJSONObject(0).getString("level"))
+        assertEquals(watched, priorities.getJSONObject(1).getString("packageName"))
+    }
+
 }

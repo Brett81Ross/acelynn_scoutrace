@@ -27,9 +27,10 @@ object InvestigationNarrative {
             compareByDescending<JSONObject> { severity(it.optString("level")) }
                 .thenByDescending {
                     when(correlationMap[it.optString("packageName")]?.optString("priority")) {
-                        "PRIORITY_REVIEW" -> 4
-                        "REVIEW_ACTIVE_ACCESS" -> 3
-                        "REVIEW_NEW_GRANT" -> 2
+                        "PRIORITY_REVIEW" -> 5
+                        "REVIEW_ACTIVE_ACCESS" -> 4
+                        "REVIEW_NEW_GRANT" -> 3
+                        "REVIEW_ENABLED_SETTING" -> 2
                         "CONTEXT_ONLY" -> 1
                         else -> 0
                     }
